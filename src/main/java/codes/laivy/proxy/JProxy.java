@@ -1,4 +1,4 @@
 package codes.laivy.proxy;
 
-public interface Proxy {
+public interface JProxy {
 }
