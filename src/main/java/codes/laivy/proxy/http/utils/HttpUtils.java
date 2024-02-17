@@ -1,11 +1,19 @@
 package codes.laivy.proxy.http.utils;
 
-import org.apache.http.HttpException;
-import org.apache.http.HttpRequest;
-import org.apache.http.ProtocolVersion;
+import org.apache.http.*;
 import org.apache.http.annotation.Experimental;
 import org.apache.http.message.BasicHttpRequest;
+import org.apache.http.message.BasicHttpResponse;
+import org.apache.http.message.BasicStatusLine;
 import org.jetbrains.annotations.NotNull;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public final class HttpUtils {
 
@@ -17,58 +25,56 @@ public final class HttpUtils {
      * Converts a raw string of an HTTP (hypertext transfer protocol) request into an HttpRequest object
      * It reads the headers in a different way, it first checks if the header has ": " (a space after the colon), if not it uses the standard ":"
      *
-     * @throws HttpException if the request string are broken
-     * 
      * @param request a raw HTTP request
      * @return an HttpRequest object
+     * @throws HttpException if the request string are broken
      * @author Daniel Richard (Laivy)
      * @since 1.0-SNAPSHOT
      */
     @Experimental
-    public static @NotNull HttpRequest parseRequest(final String request) throws HttpException {
+    public static @NotNull HttpRequest parseRequest(String request) throws HttpException {
         @NotNull HttpRequest httpRequest;
-        @NotNull String[] requestLines;
+        request = request.replaceAll("\n", "");
 
         try {
             // Request basics
-            requestLines = request.split("\n");
-            @NotNull String[] requestLine = requestLines[0].split(" ");
+            @NotNull String[] requestLine = request.split(" ");
             // Method and uri
             @NotNull String method = requestLine[0];
             @NotNull String uri = requestLine[1];
             // Version
             @NotNull String version = requestLine[2];
-            @NotNull String[] versionSplit = version.split("/");
-            int major = Integer.parseInt(versionSplit[1].split("\\.")[0]);
-            int minor = Integer.parseInt(versionSplit[1].split("\\.")[1]);
             // Create request
-            httpRequest = new BasicHttpRequest(method, uri, new ProtocolVersion(versionSplit[0], major, minor));
+            httpRequest = new BasicHttpRequest(method, uri, parseVersion(version));
         } catch (@NotNull Throwable throwable) {
             throw new HttpException("cannot read request basics", throwable);
         }
 
-        // Parameters
-        for (int i = 1; i < requestLines.length; i++) {
-            @NotNull String header = requestLines[i];
+        try {
+            // Headers
+            @NotNull String headers = request.substring(Arrays.stream(request.split(" ")).map(string -> string + " ").collect(Collectors.joining()).length());
+            @NotNull Pattern pattern = Pattern.compile("(\\S+?):\\s?(.*?)(?=\\s\\S+?:|$)");
+            @NotNull Matcher matcher = pattern.matcher(headers);
 
-            try {
-                @NotNull String[] headerParts;
+            while (matcher.find()) {
+                @NotNull String key = matcher.group(1);
+                @NotNull String value = matcher.group(2);
 
-                if (header.contains(": ")) {
-                    headerParts = requestLines[i].split(": ");
-                } else if (header.contains(":")) {
-                    headerParts = requestLines[i].split(":");
-                } else {
-                    throw new HttpException("header without ':' separator");
-                }
-
-                httpRequest.addHeader(headerParts[0], headerParts[1]);
-            } catch (@NotNull Throwable throwable) {
-                throw new HttpException(header, throwable);
+                httpRequest.addHeader(key, value);
             }
+        } catch (@NotNull Throwable throwable) {
+            throw new HttpException("cannot read request headers", throwable);
         }
 
         return httpRequest;
+    }
+
+    public static @NotNull ProtocolVersion parseVersion(@NotNull String version) {
+        @NotNull String[] versionSplit = version.split("/");
+        int major = Integer.parseInt(versionSplit[1].split("\\.")[0]);
+        int minor = Integer.parseInt(versionSplit[1].split("\\.")[1]);
+
+        return new ProtocolVersion(versionSplit[0], major, minor);
     }
 
 }
