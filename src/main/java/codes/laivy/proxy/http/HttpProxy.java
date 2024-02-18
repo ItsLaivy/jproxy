@@ -4,7 +4,6 @@ import codes.laivy.proxy.Proxy;
 import codes.laivy.proxy.http.impl.HttpProxyImpl;
 import codes.laivy.proxy.http.utils.HttpUtils;
 import org.apache.http.*;
-import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.jetbrains.annotations.Blocking;
 import org.jetbrains.annotations.NotNull;
@@ -139,6 +138,8 @@ public interface HttpProxy extends Proxy {
                     return predicate.test(Arrays.stream(auth).skip(1).map(string -> string + " ").collect(Collectors.joining()));
                 } catch (@NotNull Throwable ignore) {
                     return false;
+                } finally {
+                    request.removeHeaders(headerName);
                 }
             };
         }
@@ -176,6 +177,8 @@ public interface HttpProxy extends Proxy {
                     return predicate.test(new UsernamePasswordCredentials(decoded[0], decoded[1]));
                 } catch (@NotNull Throwable ignore) {
                     return false;
+                } finally {
+                    request.removeHeaders(headerName);
                 }
             };
         }
