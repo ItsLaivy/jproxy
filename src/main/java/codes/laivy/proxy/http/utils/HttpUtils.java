@@ -25,6 +25,22 @@ public final class HttpUtils {
     }
 
     /**
+     * Creates a response with the status code 401 (Unauthorized) and a message indicating that the proxy authentication failed
+     * @return an HTTP response object with the 401 status code and a message
+     */
+    public static @NotNull HttpResponse unauthorizedResponse() {
+        return new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), HttpStatus.SC_UNAUTHORIZED, "proxy authorization missing or invalid"));
+    }
+
+    /**
+     * Creates a response with the status code 500 (Internal Server Error) and a message indicating that the proxy failed to process the request
+     * @return an HTTP response object with the 500 status code and a message
+     */
+    public static @NotNull HttpResponse errorResponse(@NotNull String message) {
+        return new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), HttpStatus.SC_INTERNAL_SERVER_ERROR, message));
+    }
+
+    /**
      * Converts a raw string of an HTTP (hypertext transfer protocol) request into an HttpRequest object
      * It reads the headers in a different way, it first checks if the header has ": " (a space after the colon), if not it uses the standard ":"
      *
