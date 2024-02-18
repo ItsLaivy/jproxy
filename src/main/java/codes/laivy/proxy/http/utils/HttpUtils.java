@@ -1,11 +1,15 @@
 package codes.laivy.proxy.http.utils;
 
-import org.apache.http.HttpException;
-import org.apache.http.HttpRequest;
-import org.apache.http.ProtocolVersion;
+import org.apache.http.*;
 import org.apache.http.annotation.Experimental;
+import org.apache.http.entity.BasicHttpEntity;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHttpRequest;
+import org.apache.http.message.BasicHttpResponse;
+import org.apache.http.message.BasicStatusLine;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.regex.Matcher;
@@ -63,6 +67,61 @@ public final class HttpUtils {
         }
 
         return httpRequest;
+    }
+
+    @Experimental
+    public static @NotNull HttpResponse parseResponse(final String response) throws HttpException {
+        @NotNull String[] content = response.split("\n\n", 2);
+        @NotNull String[] parts = content[0].replaceAll("\n", " ").split(" ");
+
+        @NotNull HttpResponse httpResponse;
+
+        try {
+            // Status line
+            @NotNull StatusLine line = new BasicStatusLine(parseVersion(parts[0]), Integer.parseInt(parts[1]), parts[2]);
+            httpResponse = new BasicHttpResponse(line);
+        } catch (@NotNull Throwable throwable) {
+            throw new HttpException("cannot read response status line", throwable);
+        }
+
+        try {
+            // Headers
+            @NotNull String headers = content[0].substring(Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length());
+            @NotNull Matcher matcher = HEADERS_SPLIT_PATTERN.matcher(headers);
+
+            while (matcher.find()) {
+                @NotNull String key = matcher.group(1);
+                @NotNull String value = matcher.group(2);
+
+                httpResponse.addHeader(key, value);
+            }
+        } catch (@NotNull Throwable throwable) {
+            throw new HttpException("cannot read response headers", throwable);
+        }
+
+        try {
+            // Content
+            @Nullable ContentType contentType = null;
+            if (httpResponse.containsHeader("Content-Type")) {
+                contentType = ContentType.parse(httpResponse.getLastHeader("Content-Type").getValue());
+            }
+
+            // Body
+            if (content.length > 1) {
+                @NotNull String body = content[1];
+                httpResponse.setEntity(new StringEntity(body, contentType));
+            } else {
+                httpResponse.setEntity(new BasicHttpEntity() {
+                    {
+                        this.contentType = httpResponse.getLastHeader("Content-Type");
+                    }
+                });
+            }
+        } catch (@NotNull Throwable throwable) {
+            throw new HttpException("cannot read response body", throwable);
+        }
+
+        return httpResponse;
     }
 
     public static @NotNull ProtocolVersion parseVersion(@NotNull String version) {
