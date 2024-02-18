@@ -4,6 +4,8 @@ import codes.laivy.proxy.Proxy;
 import codes.laivy.proxy.http.impl.HttpProxyImpl;
 import codes.laivy.proxy.http.utils.HttpUtils;
 import org.apache.http.*;
+import org.apache.http.auth.Credentials;
+import org.apache.http.auth.UsernamePasswordCredentials;
 import org.jetbrains.annotations.Blocking;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,6 +18,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -112,6 +115,7 @@ public interface HttpProxy extends Proxy {
          * @since 1.0-SNAPSHOT
          * @author Daniel Richard (Laivy)
          *
+         * @see <a href="https://apidog.com/articles/what-is-bearer-token/">Bearer Authorization</a>
          * @param predicate a function that checks if the token is valid
          * @return an authentication object that implements the bearer token logic
          */
@@ -119,19 +123,60 @@ public interface HttpProxy extends Proxy {
             final @NotNull String headerName = "Proxy-Authorization";
 
             return (socket, request) -> {
-                if (!request.containsHeader(headerName)) {
+                try {
+                    if (!request.containsHeader(headerName)) {
+                        return false;
+                    }
+
+                    @NotNull String[] auth = request.getLastHeader(headerName).getValue().split(" ");
+
+                    if (auth.length < 2) {
+                        return false;
+                    } else if (auth[0].equalsIgnoreCase("Bearer")) {
+                        return false;
+                    }
+
+                    return predicate.test(Arrays.stream(auth).skip(1).map(string -> string + " ").collect(Collectors.joining()));
+                } catch (@NotNull Throwable ignore) {
                     return false;
                 }
+            };
+        }
 
-                @NotNull String[] auth = request.getLastHeader(headerName).getValue().split(" ");
+        /**
+         * Creates an authentication object that uses the basic token scheme
+         *
+         * @since 1.0-SNAPSHOT
+         * @author Daniel Richard (Laivy)
+         *
+         * @see <a href="https://en.wikipedia.org/wiki/Basic_access_authentication">Basic Authorization</a>
+         * @param predicate a function that checks if the token is valid
+         * @return an authentication object that implements the bearer token logic
+         */
+        static @NotNull Authentication basic(@NotNull Predicate<UsernamePasswordCredentials> predicate) {
+            final @NotNull String headerName = "Proxy-Authorization";
 
-                if (auth.length < 2) {
-                    return false;
-                } else if (auth[0].equalsIgnoreCase("Bearer")) {
+            return (socket, request) -> {
+                try {
+                    if (!request.containsHeader(headerName)) {
+                        return false;
+                    }
+
+                    @NotNull String[] auth = request.getLastHeader(headerName).getValue().split(" ");
+
+                    if (auth.length < 2) {
+                        return false;
+                    } else if (auth[0].equalsIgnoreCase("Basic")) {
+                        return false;
+                    }
+
+                    @NotNull String encoded = Arrays.stream(auth).skip(1).map(string -> string + " ").collect(Collectors.joining());
+                    @NotNull String[] decoded = new String(Base64.getDecoder().decode(encoded)).split(":");
+
+                    return predicate.test(new UsernamePasswordCredentials(decoded[0], decoded[1]));
+                } catch (@NotNull Throwable ignore) {
                     return false;
                 }
-
-                return predicate.test(Arrays.stream(auth).skip(1).map(string -> string + " ").collect(Collectors.joining()));
             };
         }
 

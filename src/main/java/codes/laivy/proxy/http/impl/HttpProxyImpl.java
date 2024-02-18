@@ -15,8 +15,6 @@ import java.util.Objects;
 
 public class HttpProxyImpl implements HttpProxy {
 
-    // Static initializers
-
     // Address
 
     private final @Nullable Authentication authentication;
@@ -31,7 +29,7 @@ public class HttpProxyImpl implements HttpProxy {
     public HttpProxyImpl(@Nullable Authentication authentication, @NotNull InetSocketAddress address) throws IOException {
         this(authentication, address, ServerSocketChannel.open());
     }
-    public HttpProxyImpl(@Nullable Authentication authentication, @NotNull InetSocketAddress address, @NotNull ServerSocketChannel channel) throws IOException {
+    protected HttpProxyImpl(@Nullable Authentication authentication, @NotNull InetSocketAddress address, @NotNull ServerSocketChannel channel) throws IOException {
         this.authentication = authentication;
         this.address = address;
 
