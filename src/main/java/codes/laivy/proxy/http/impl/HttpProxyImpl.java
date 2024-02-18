@@ -42,13 +42,12 @@ public class HttpProxyImpl implements HttpProxy {
 
     // Getters
 
-    public @NotNull ServerSocketChannel getServerChannel() {
+    public final @NotNull ServerSocketChannel getServerChannel() {
         return server.getChannel();
     }
 
     /**
-     * todo: Javadocs
-     * @return null if proxy is not running
+     * @return the selector object that handles the proxy connections or null if the proxy is not running
      */
     public final @Nullable Selector getSelector() {
         return selector;

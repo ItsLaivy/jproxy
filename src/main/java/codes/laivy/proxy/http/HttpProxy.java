@@ -110,6 +110,7 @@ public interface HttpProxy extends Proxy {
 
         /**
          * Creates an authentication object that uses the bearer token scheme
+         * <p style="color:red">Note: After the first successfullys validation, it removes the authorization header. It means if you try to validate again, it will return false.</p>
          *
          * @since 1.0-SNAPSHOT
          * @author Daniel Richard (Laivy)
@@ -146,6 +147,7 @@ public interface HttpProxy extends Proxy {
 
         /**
          * Creates an authentication object that uses the basic token scheme
+         * <p style="color:red">Note: After the first successfully validation, it removes the authorization header. It means if you try to validate again, it will return false.</p>
          *
          * @since 1.0-SNAPSHOT
          * @author Daniel Richard (Laivy)
