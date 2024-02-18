@@ -1,6 +1,7 @@
 package codes.laivy.proxy.http;
 
 import codes.laivy.proxy.Proxy;
+import codes.laivy.proxy.http.impl.HttpProxyImpl;
 import codes.laivy.proxy.http.utils.HttpUtils;
 import org.apache.http.*;
 import org.jetbrains.annotations.Blocking;
@@ -15,11 +16,16 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public interface HttpProxy extends Proxy {
+
+    // Initializers
+
+    static @NotNull HttpProxy create(@NotNull Authentication authentication, @NotNull InetSocketAddress address) throws IOException {
+        return new HttpProxyImpl(authentication, address);
+    }
 
     // Getters
 
@@ -88,9 +94,9 @@ public interface HttpProxy extends Proxy {
 
     // Loaders
 
-    boolean start() throws ExecutionException;
+    boolean start() throws Exception;
 
-    boolean stop() throws InterruptedException;
+    boolean stop() throws Exception;
 
     // Classes
 
