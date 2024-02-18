@@ -7,6 +7,11 @@ import org.apache.http.ProtocolVersion;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 public final class HttpUtils {
 
@@ -36,6 +41,20 @@ public final class HttpUtils {
      */
     public static @NotNull HttpResponse errorResponse(@NotNull String message) {
         return new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), HttpStatus.SC_INTERNAL_SERVER_ERROR, message));
+    }
+
+    public static @NotNull InetSocketAddress getAddress(@Nullable InetSocketAddress previous, @NotNull String path) throws URISyntaxException {
+        if (path.startsWith("/")) {
+            if (previous == null) {
+                throw new IllegalArgumentException("invalid path destination without a previous valid address");
+            } else {
+                @NotNull URI uri = new URI(null, null, previous.getHostName(), previous.getPort(), path, null, null);
+                return new InetSocketAddress(uri.getHost(), uri.getPort());
+            }
+        } else {
+            @NotNull URI uri = new URI(path);
+            return new InetSocketAddress(uri.getHost(), uri.getPort() == -1 ? 80 : uri.getPort());
+        }
     }
 
 }
