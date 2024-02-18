@@ -1,24 +1,32 @@
 package codes.laivy.proxy.http.impl;
 
 import codes.laivy.proxy.http.HttpProxy;
+import codes.laivy.proxy.http.utils.HttpSerializers;
 import codes.laivy.proxy.http.utils.HttpUtils;
-import org.apache.http.*;
+import com.sun.jndi.toolkit.url.Uri;
+import org.apache.http.Header;
+import org.apache.http.HttpException;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.message.BasicHttpRequest;
+import org.apache.http.message.BasicRequestLine;
+import org.apache.http.message.BasicStatusLine;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
 
-import java.io.*;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.IOException;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static codes.laivy.proxy.http.utils.HttpSerializers.getHttpResponse;
 
 public class HttpProxyImpl implements HttpProxy {
 
@@ -55,7 +63,9 @@ public class HttpProxyImpl implements HttpProxy {
 
     // Getters
 
-
+    public final @Nullable java.lang.Thread getThread() {
+        return thread;
+    }
     public final @NotNull Requests getRequests() {
         return requests;
     }
@@ -93,48 +103,63 @@ public class HttpProxyImpl implements HttpProxy {
     }
 
     @Override
-    public @NotNull HttpResponse request(@NotNull Socket socket, @NotNull HttpRequest request) throws IOException, HttpException {
-        @NotNull StringBuilder responseString = new StringBuilder();
-        @NotNull StringBuilder requestString;
+    public @NotNull HttpResponse request(@NotNull Socket socket, @NotNull HttpRequest clientRequest) throws IOException, HttpException {
+        // Create clone request
+        @NotNull HttpRequest request;
 
         try {
-            // Serialize request
-            @NotNull RequestLine line = request.getRequestLine();
-            requestString = new StringBuilder(line.getMethod() + " " + line.getUri() + " " + line.getProtocolVersion());
-            for (@NotNull Header header : request.getAllHeaders()) {
-                requestString.append(header.getName()).append(": ").append(header.getValue());
-            }
-        } catch (@NotNull Throwable throwable) {
-            throw new HttpException("cannot serialize request");
-        }
+            @NotNull URI uri = new URI(clientRequest.getRequestLine().getUri());
+            request = new BasicHttpRequest(new BasicRequestLine(clientRequest.getRequestLine().getMethod(), uri.getPath(), clientRequest.getProtocolVersion()));
 
-        try (@NotNull Socket requestSocket = new Socket(getHandle())) {
-            getRequests().add(requestSocket);
-            requestSocket.connect(new InetSocketAddress(request.getRequestLine().getUri(), 80));
-
-            // Send website request
-            @NotNull PrintWriter writer = new PrintWriter(requestSocket.getOutputStream());
-            writer.println(requestString);
-
-            // Read request
-            @NotNull BufferedReader reader = new BufferedReader(new InputStreamReader(requestSocket.getInputStream()));
-            @NotNull String line;
-
-            while ((line = reader.readLine()) != null) {
-                responseString.append(line).append("\n");
+            for (@NotNull Header header : clientRequest.getAllHeaders()) {
+                request.addHeader(header);
             }
 
-            writer.flush();
-            writer.close();
-
-            getRequests().remove(requestSocket);
+            request.setHeader("Host", HttpUtils.getAddress(null, uri.toString()).getHostName());
+            if (!request.containsHeader("User-Agent")) {
+                request.addHeader("User-Agent", "java-" + System.getProperty("java.version"));
+            } if (!request.containsHeader("Connection")) {
+                request.addHeader("Connection", "close");
+            }
+        } catch (@NotNull Throwable throwable) {
+            throw new HttpException("cannot create clone request", throwable);
         }
 
-        try {
-            @NotNull HttpResponse response = HttpUtils.parseResponse(responseString.toString());
-            return response;
-        } catch (@NotNull Throwable throwable) {
-            throw new HttpException("invalid response format", throwable);
+        // Request
+        try (@NotNull SocketChannel channel = SocketChannel.open()) {
+            getRequests().add(channel.socket());
+
+            @NotNull InetSocketAddress address = HttpUtils.getAddress(null, clientRequest.getRequestLine().getUri());
+            channel.connect(address);
+
+            try {
+                // Send website request
+                channel.write(HttpSerializers.getHttpRequest().serialize(request));
+                System.out.println(": Send: '" + new String(HttpSerializers.getHttpRequest().serialize(request).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
+            } catch (@NotNull Throwable throwable) {
+                throw new HttpException("cannot write http request to destination", throwable);
+            }
+
+            try {
+                // Read request
+                @NotNull ByteBuffer readBuffer = ByteBuffer.allocate(1024);
+                @NotNull StringBuilder stringBuilder = new StringBuilder();
+
+                while (channel.read(readBuffer) > 0) {
+                    readBuffer.flip();
+                    stringBuilder.append(StandardCharsets.UTF_8.decode(readBuffer));
+                    readBuffer.clear();
+                }
+
+                System.out.println(": Read: '" + stringBuilder.toString().replaceAll("\r", "").replaceAll("\n", " ") + "'");
+
+                @NotNull ByteBuffer buffer = ByteBuffer.wrap(stringBuilder.toString().getBytes(StandardCharsets.UTF_8));
+                return getHttpResponse().deserialize(buffer);
+            } catch (@NotNull Throwable throwable) {
+                throw new HttpException("cannot read http response", throwable);
+            }
+        } catch (URISyntaxException e) {
+            throw new HttpException("cannot read uri", e);
         }
     }
 
@@ -142,7 +167,7 @@ public class HttpProxyImpl implements HttpProxy {
 
     @Override
     public synchronized boolean start() throws Exception {
-        if (getServerChannel().isOpen() || selector != null) {
+        if (getServerChannel().socket().isBound() || selector != null) {
             return false;
         }
 
@@ -159,7 +184,7 @@ public class HttpProxyImpl implements HttpProxy {
 
     @Override
     public synchronized boolean stop() throws Exception {
-        if (!getServerChannel().isOpen() || getSelector() == null || this.thread == null) {
+        if (!getServerChannel().socket().isBound() || getSelector() == null || this.thread == null) {
             return false;
         }
 
@@ -237,8 +262,8 @@ public class HttpProxyImpl implements HttpProxy {
         private final @NotNull HttpProxyImpl proxy;
 
         public Thread(@NotNull HttpProxyImpl proxy) {
-            setName("Http Proxy");
-            setDaemon(true);
+            setName("Http Proxy #" + proxy.hashCode());
+            setDaemon(false);
 
             this.proxy = proxy;
         }
@@ -253,6 +278,7 @@ public class HttpProxyImpl implements HttpProxy {
 
         @Override
         public void run() {
+            // todo: debug
             @Nullable Selector selector = getProxy().getSelector();
 
             if (selector == null) {
@@ -287,6 +313,7 @@ public class HttpProxyImpl implements HttpProxy {
 
                             try {
                                 @NotNull SocketChannel clientSocket = server.accept();
+                                System.out.println("Connected '" + clientSocket.socket().getPort() + "'");
 
                                 try {
                                     clientSocket.configureBlocking(false);
@@ -299,53 +326,74 @@ public class HttpProxyImpl implements HttpProxy {
                             }
                         }
                         if (isReadable(key)) {
+                            @NotNull SocketChannel clientChannel = (SocketChannel) key.channel();
+
                             try {
-                                @NotNull ByteBuffer buffer = ByteBuffer.allocate(getProxy().server.getReceiveBufferSize());
-
-                                @NotNull SocketChannel clientChannel = (SocketChannel) key.channel();
                                 @NotNull Socket socket = clientChannel.socket();
+                                @NotNull ByteBuffer buffer;
 
-                                @Nullable HttpRequest request = null;
-                                @Nullable HttpResponse response = null;
+                                @NotNull HttpRequest request;
 
                                 try {
-                                    int read = clientChannel.read(buffer);
+                                    @NotNull ByteBuffer readBuffer = ByteBuffer.allocate(1024);
+                                    @NotNull StringBuilder stringBuilder = new StringBuilder();
 
-                                    if (read == -1) {
-                                        clientChannel.close();
-                                        getProxy().getRequests().remove(socket);
+                                    while (clientChannel.read(readBuffer) > 0) {
+                                        readBuffer.flip();
+                                        stringBuilder.append(StandardCharsets.UTF_8.decode(readBuffer));
+                                        readBuffer.clear();
                                     }
-                                } catch (@NotNull Throwable throwable) {
-                                    response = HttpUtils.errorResponse("cannot read socket data");
+
+                                    System.out.println("Read: '" + stringBuilder.toString().replaceAll("\r", "").replaceAll("\n", " ") + "'");
+                                    buffer = ByteBuffer.wrap(stringBuilder.toString().getBytes(StandardCharsets.UTF_8));
+                                } catch (@NotNull IOException ignore) {
+                                    clientChannel.close();
+                                    continue;
                                 }
 
                                 try {
-                                    @NotNull String message = String.valueOf(buffer.asCharBuffer().array());
-                                    request = HttpUtils.parseRequest(message);
+                                    request = HttpSerializers.getHttpRequest().deserialize(buffer);
+                                } catch (@NotNull Throwable throwable) {
+                                    clientChannel.close();
+                                    continue;
+                                }
+
+                                @Nullable Authentication authentication = getProxy().getAuthentication();
+                                if (authentication != null && !request.getRequestLine().getMethod().equalsIgnoreCase("CONNECT")) {
+                                    @Nullable HttpResponse authResponse = null;
 
                                     try {
-                                        @Nullable Authentication authentication = getProxy().getAuthentication();
-                                        if (authentication != null && !authentication.validate(socket, request)) {
-                                            response = HttpUtils.unauthorizedResponse();
+                                        if (!authentication.validate(socket, request)) {
+                                            authResponse = HttpUtils.unauthorizedResponse();
                                         }
                                     } catch (@NotNull Throwable throwable) {
                                         getUncaughtExceptionHandler().uncaughtException(this, throwable);
-                                        response = HttpUtils.errorResponse("cannot validate authentication");
+                                        authResponse = HttpUtils.unauthorizedResponse();
                                     }
-                                } catch (@NotNull Throwable throwable) {
-                                    response = HttpUtils.errorResponse("cannot read http request");
+
+                                    if (authResponse != null) {
+                                        clientChannel.write(getHttpResponse().serialize(authResponse));
+                                        continue;
+                                    }
                                 }
 
-                                if (response != null && request != null) {
-                                    // todo: blocking
-                                    response = getProxy().request(socket, request);
+                                try {
+                                    if (request.getRequestLine().getMethod().equalsIgnoreCase("CONNECT")) {
+                                        clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse()));
+                                        System.out.println("Send 4");
+                                    } else try {
+                                        System.out.println("Performing request");
+                                        // todo: blocking
+                                        @NotNull HttpResponse response = getProxy().request(socket, request);
+                                        System.out.println("Performing response");
+                                        clientChannel.write(getHttpResponse().serialize(response));
+                                        System.out.println("Send 5");
+                                    } catch (@NotNull Throwable throwable) {
+                                        throwable.printStackTrace();
+                                    }
+                                } catch (@NotNull IOException e) {
+                                    e.printStackTrace();
                                 }
-
-                                @NotNull PrintWriter writer = new PrintWriter(socket.getOutputStream());
-                                writer.print(response);
-
-                                writer.close();
-                                socket.close();
                             } catch (@NotNull Throwable throwable) {
                                 getUncaughtExceptionHandler().uncaughtException(this, throwable);
                             }
