@@ -2,20 +2,23 @@ package codes.laivy.proxy.http;
 
 import codes.laivy.proxy.Proxy;
 import codes.laivy.proxy.http.impl.HttpProxyImpl;
-import codes.laivy.proxy.http.utils.HttpUtils;
-import org.apache.http.*;
+import codes.laivy.proxy.http.utils.HttpSerializers;
+import org.apache.http.HttpException;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.jetbrains.annotations.Blocking;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.function.Predicate;
@@ -25,7 +28,7 @@ public interface HttpProxy extends Proxy {
 
     // Initializers
 
-    static @NotNull HttpProxy create(@NotNull Authentication authentication, @NotNull InetSocketAddress address) throws IOException {
+    static @NotNull HttpProxy create(@Nullable Authentication authentication, @NotNull InetSocketAddress address) throws IOException {
         return new HttpProxyImpl(authentication, address);
     }
 
@@ -53,44 +56,25 @@ public interface HttpProxy extends Proxy {
      */
     @Blocking
     default @NotNull HttpResponse request(@NotNull Socket socket, @NotNull HttpRequest request) throws IOException, HttpException {
-        @NotNull StringBuilder responseString = new StringBuilder();
-        @NotNull StringBuilder requestString;
-
-        try {
-            // Serialize request
-            @NotNull RequestLine line = request.getRequestLine();
-            requestString = new StringBuilder(line.getMethod() + " " + line.getUri() + " " + line.getProtocolVersion());
-            for (@NotNull Header header : request.getAllHeaders()) {
-                requestString.append(header.getName()).append(": ").append(header.getValue());
-            }
-        } catch (@NotNull Throwable throwable) {
-            throw new HttpException("cannot serialize request");
-        }
-
         try (@NotNull Socket requestSocket = new Socket(getHandle())) {
             requestSocket.connect(new InetSocketAddress(request.getRequestLine().getUri(), 80));
 
-            // Send website request
-            @NotNull PrintWriter writer = new PrintWriter(requestSocket.getOutputStream());
-            writer.println(requestString);
+            try {
+                // Read request
+                @NotNull InputStream stream = socket.getInputStream();
+                @NotNull ReadableByteChannel channel = Channels.newChannel(stream);
+                @NotNull ByteBuffer buffer = ByteBuffer.allocate(stream.available());
 
-            // Read request
-            @NotNull BufferedReader reader = new BufferedReader(new InputStreamReader(requestSocket.getInputStream()));
-            @NotNull String line;
+                //noinspection StatementWithEmptyBody
+                while (channel.read(buffer) != -1) {
+                }
 
-            while ((line = reader.readLine()) != null) {
-                responseString.append(line).append("\n");
+                buffer.flip();
+
+                return HttpSerializers.getHttpResponse().deserialize(buffer);
+            } catch (@NotNull Throwable throwable) {
+                throw new HttpException("cannot read http response", throwable);
             }
-
-            writer.flush();
-            writer.close();
-        }
-
-        try {
-            @NotNull HttpResponse response = HttpUtils.parseResponse(responseString.toString());
-            return response;
-        } catch (@NotNull Throwable throwable) {
-            throw new HttpException("invalid response format", throwable);
         }
     }
 
@@ -110,7 +94,7 @@ public interface HttpProxy extends Proxy {
 
         /**
          * Creates an authentication object that uses the bearer token scheme
-         * <p style="color:red">Note: After the first successfullys validation, it removes the authorization header. It means if you try to validate again, it will return false.</p>
+         * <p style="color:red">Note: After the first successfully validation, it removes the authorization header. It means if you try to validate again, it will return false.</p>
          *
          * @since 1.0-SNAPSHOT
          * @author Daniel Richard (Laivy)
