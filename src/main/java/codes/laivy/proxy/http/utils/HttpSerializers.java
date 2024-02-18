@@ -32,18 +32,20 @@ public final class HttpSerializers {
             @Override
             public @NotNull ByteBuffer serialize(@UnknownNullability HttpRequest request) throws Exception {
                 @NotNull RequestLine line = request.getRequestLine();
-                @NotNull StringBuilder builder = new StringBuilder(line.getMethod() + " " + line.getUri() + " " + line.getProtocolVersion() + "\r\n");
+                @NotNull StringBuilder builder = new StringBuilder(line.getMethod() + " " + line.getUri() + " " + line.getProtocolVersion() + "\n");
 
                 for (@NotNull Header header : request.getAllHeaders()) {
-                    builder.append(header.getName()).append(": ").append(header.getValue()).append("\r\n");
+                    builder.append(header.getName()).append(": ").append(header.getValue()).append("\n");
                 }
+
+                builder.append("\n");
 
                 return ByteBuffer.wrap(builder.toString().getBytes(StandardCharsets.UTF_8));
             }
 
             @Override
-            public @UnknownNullability HttpRequest deserialize(@NotNull ByteBuffer object) throws Exception {
-                @NotNull String request = new String(object.array(), StandardCharsets.UTF_8);
+            public @UnknownNullability HttpRequest deserialize(@NotNull ByteBuffer buffer) throws Exception {
+                @NotNull String request = new String(buffer.array(), StandardCharsets.UTF_8);
                 @NotNull String[] parts = request.replaceAll("\r", "").replaceAll("\n", " ").split(" ");
                 @NotNull HttpRequest httpRequest;
 
@@ -83,18 +85,18 @@ public final class HttpSerializers {
             @Override
             public @NotNull ByteBuffer serialize(@UnknownNullability HttpResponse response) throws HttpException {
                 @NotNull StatusLine line = response.getStatusLine();
-                @NotNull StringBuilder builder = new StringBuilder(line.getProtocolVersion() + " " + line.getStatusCode() + " " + line.getReasonPhrase() + "\r\n");
+                @NotNull StringBuilder builder = new StringBuilder(line.getProtocolVersion() + " " + line.getStatusCode() + " " + line.getReasonPhrase() + "\n");
 
                 try {
                     for (Header header : response.getAllHeaders()) {
-                        builder.append(header.getName()).append(": ").append(header.getValue()).append("\r\n");
+                        builder.append(header.getName()).append(": ").append(header.getValue()).append("\n");
                     }
                 } catch (@NotNull Throwable throwable) {
                     throw new HttpException("cannot serialize http response headers", throwable);
                 }
 
                 try {
-                    builder.append("\r\n");
+                    builder.append("\n");
                     if (response.getEntity() != null) {
                         builder.append(new Scanner(response.getEntity().getContent()).useDelimiter("\\A").next());
                     }
@@ -106,8 +108,8 @@ public final class HttpSerializers {
             }
 
             @Override
-            public @UnknownNullability HttpResponse deserialize(@NotNull ByteBuffer object) throws Exception {
-                @NotNull String[] content = new String(object.array(), StandardCharsets.UTF_8).replaceAll("\r", "").split("\n\n", 2);
+            public @UnknownNullability HttpResponse deserialize(@NotNull ByteBuffer buffer) throws Exception {
+                @NotNull String[] content = new String(buffer.array(), StandardCharsets.UTF_8).replaceAll("\r", "").split("\n\n", 2);
                 @NotNull String[] parts = content[0].replaceAll("\n", " ").split(" ");
 
                 @NotNull HttpResponse httpResponse;
@@ -171,9 +173,9 @@ public final class HttpSerializers {
             }
 
             @Override
-            public @UnknownNullability ProtocolVersion deserialize(@NotNull ByteBuffer object) {
+            public @UnknownNullability ProtocolVersion deserialize(@NotNull ByteBuffer buffer) {
                 try {
-                    @NotNull String string = new String(object.array());
+                    @NotNull String string = new String(buffer.array());
 
                     @NotNull String[] parts = string.split("/");
                     @NotNull String[] version = parts[1].split("\\.");
@@ -191,7 +193,7 @@ public final class HttpSerializers {
     public interface Serializer<T> {
 
         @NotNull ByteBuffer serialize(@UnknownNullability T object) throws Exception;
-        @UnknownNullability T deserialize(@NotNull ByteBuffer object) throws Exception;
+        @UnknownNullability T deserialize(@NotNull ByteBuffer buffer) throws Exception;
 
     }
 
