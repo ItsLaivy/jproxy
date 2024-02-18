@@ -52,7 +52,7 @@ public interface HttpProxy extends Proxy {
      * @throws HttpException if there is an error in the request or response serialization or parsing
      */
     @Blocking
-    default @NotNull HttpResponse request(@NotNull HttpRequest request) throws IOException, HttpException {
+    default @NotNull HttpResponse request(@NotNull Socket socket, @NotNull HttpRequest request) throws IOException, HttpException {
         @NotNull StringBuilder responseString = new StringBuilder();
         @NotNull StringBuilder requestString;
 
@@ -67,15 +67,15 @@ public interface HttpProxy extends Proxy {
             throw new HttpException("cannot serialize request");
         }
 
-        try (@NotNull Socket socket = new Socket(getHandle())) {
-            socket.connect(new InetSocketAddress(request.getRequestLine().getUri(), 80));
+        try (@NotNull Socket requestSocket = new Socket(getHandle())) {
+            requestSocket.connect(new InetSocketAddress(request.getRequestLine().getUri(), 80));
 
             // Send website request
-            @NotNull PrintWriter writer = new PrintWriter(socket.getOutputStream());
+            @NotNull PrintWriter writer = new PrintWriter(requestSocket.getOutputStream());
             writer.println(requestString);
 
             // Read request
-            @NotNull BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            @NotNull BufferedReader reader = new BufferedReader(new InputStreamReader(requestSocket.getInputStream()));
             @NotNull String line;
 
             while ((line = reader.readLine()) != null) {
