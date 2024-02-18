@@ -23,24 +23,24 @@ public final class HttpUtils {
      * Creates a response with the status code 200 (Success) and a message indicating that the proxy validation occurred and the client can use the proxy
      * @return an HTTP response object with the 200 status code and a message
      */
-    public static @NotNull HttpResponse successResponse() {
-        return new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), HttpStatus.SC_OK, "connection established"));
+    public static @NotNull HttpResponse successResponse(@NotNull ProtocolVersion version) {
+        return new BasicHttpResponse(version, HttpStatus.SC_OK, "connection established");
     }
 
     /**
      * Creates a response with the status code 401 (Unauthorized) and a message indicating that the proxy authentication failed
      * @return an HTTP response object with the 401 status code and a message
      */
-    public static @NotNull HttpResponse unauthorizedResponse() {
-        return new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), HttpStatus.SC_UNAUTHORIZED, "proxy authorization failed"));
+    public static @NotNull HttpResponse unauthorizedResponse(@NotNull ProtocolVersion version) {
+        return new BasicHttpResponse(new BasicStatusLine(version, HttpStatus.SC_UNAUTHORIZED, "proxy authorization failed"));
     }
 
     /**
      * Creates a response with the status code 500 (Internal Server Error) and a message indicating that the proxy failed to process the request
      * @return an HTTP response object with the 500 status code and a message
      */
-    public static @NotNull HttpResponse errorResponse(@NotNull String message) {
-        return new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), HttpStatus.SC_INTERNAL_SERVER_ERROR, message));
+    public static @NotNull HttpResponse errorResponse(@NotNull ProtocolVersion version, @NotNull String message) {
+        return new BasicHttpResponse(new BasicStatusLine(version, HttpStatus.SC_INTERNAL_SERVER_ERROR, message));
     }
 
     public static @NotNull InetSocketAddress getAddress(@Nullable InetSocketAddress previous, @NotNull String path) throws URISyntaxException {

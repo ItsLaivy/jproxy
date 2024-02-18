@@ -364,11 +364,11 @@ public class HttpProxyImpl implements HttpProxy {
 
                                     try {
                                         if (!authentication.validate(socket, request)) {
-                                            authResponse = HttpUtils.unauthorizedResponse();
+                                            authResponse = HttpUtils.unauthorizedResponse(request.getProtocolVersion());
                                         }
                                     } catch (@NotNull Throwable throwable) {
                                         getUncaughtExceptionHandler().uncaughtException(this, throwable);
-                                        authResponse = HttpUtils.unauthorizedResponse();
+                                        authResponse = HttpUtils.unauthorizedResponse(request.getProtocolVersion());
                                     }
 
                                     if (authResponse != null) {
@@ -379,7 +379,7 @@ public class HttpProxyImpl implements HttpProxy {
 
                                 try {
                                     if (request.getRequestLine().getMethod().equalsIgnoreCase("CONNECT")) {
-                                        clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse()));
+                                        clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getProtocolVersion())));
                                         System.out.println("Send 4");
                                     } else try {
                                         System.out.println("Performing request");
