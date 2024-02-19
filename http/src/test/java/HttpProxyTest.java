@@ -196,4 +196,29 @@ public final class HttpProxyTest {
         }
     }
 
+    @Nested
+    public final class Secure {
+        @Test
+        public void get() throws Throwable {
+            // Start native http proxy
+            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null)) {
+                Assertions.assertTrue(proxy.start());
+
+                // Test with JSoup
+                @NotNull Connection connection = Jsoup.connect("https://laivy.codes/")
+                        .proxy(proxy)
+
+                        .method(Connection.Method.GET)
+
+                        .ignoreContentType(true)
+                        .ignoreHttpErrors(true);
+                @NotNull Connection.Response response = connection.execute();
+                Assertions.assertEquals(HttpStatus.SC_OK, response.statusCode(), response.statusMessage());
+
+                // End activities and stop
+                Assertions.assertTrue(proxy.stop());
+            }
+        }
+    }
+
 }

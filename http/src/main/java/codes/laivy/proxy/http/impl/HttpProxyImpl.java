@@ -32,6 +32,7 @@ public class HttpProxyImpl extends HttpProxy {
 
     // Default executor used on #getExecutor
 
+    // stop all threads when http proxy stop
     private final @NotNull ThreadPerTaskExecutor executor = new ThreadPerTaskExecutor(new ThreadFactory() {
 
         private final @NotNull AtomicInteger count = new AtomicInteger(0);
