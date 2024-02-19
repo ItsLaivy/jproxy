@@ -6,6 +6,7 @@ import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.*;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
 
 import java.net.URI;
@@ -35,7 +36,8 @@ public final class HttpSerializers {
                 builder.append("\r\n");
 
                 if (request instanceof HttpEntityContainer) {
-                    builder.append(HttpUtils.read((HttpEntityContainer) request, HttpUtils.getContentType(request)));
+                    @Nullable ContentType contentType = HttpUtils.getContentType(request);
+                    builder.append(HttpUtils.read((HttpEntityContainer) request, contentType != null ? contentType.getCharset() : null));
                 }
 
                 return ByteBuffer.wrap(builder.toString().getBytes(StandardCharsets.UTF_8));
@@ -120,7 +122,8 @@ public final class HttpSerializers {
                 builder.append("\r\n");
 
                 if (response instanceof HttpEntityContainer) {
-                    builder.append(HttpUtils.read((HttpEntityContainer) response, HttpUtils.getContentType(response)));
+                    @Nullable ContentType contentType = HttpUtils.getContentType(response);
+                    builder.append(HttpUtils.read((HttpEntityContainer) response, contentType != null ? contentType.getCharset() : null));
                 }
             } catch (@NotNull Throwable throwable) {
                 throw new SerializationException("cannot serialize http response content", throwable);

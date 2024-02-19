@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 public final class HttpUtils {
@@ -27,8 +28,8 @@ public final class HttpUtils {
 
         return type;
     }
-    public static @NotNull String read(@NotNull HttpEntityContainer container, @Nullable ContentType type) throws IOException {
-        @NotNull BufferedReader reader = new BufferedReader(new InputStreamReader(container.getEntity().getContent(), type != null ? type.getCharset() : StandardCharsets.UTF_8));
+    public static @NotNull String read(@NotNull HttpEntityContainer container, @Nullable Charset charset) throws IOException {
+        @NotNull BufferedReader reader = new BufferedReader(new InputStreamReader(container.getEntity().getContent(), charset != null ? charset : StandardCharsets.UTF_8));
 
         @NotNull StringBuilder stringBuilder = new StringBuilder();
         @NotNull String line;
