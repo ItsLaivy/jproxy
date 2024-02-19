@@ -16,7 +16,7 @@ import java.util.Base64;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public abstract class HttpProxy extends Proxy {
+public abstract class HttpProxy extends Proxy implements AutoCloseable {
 
     // Initializers
 
@@ -75,6 +75,11 @@ public abstract class HttpProxy extends Proxy {
     public abstract boolean start() throws Exception;
 
     public abstract boolean stop() throws Exception;
+
+    @Override
+    public void close() throws Exception {
+        stop();
+    }
 
     // java.net.Proxy natives
 
