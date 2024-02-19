@@ -132,12 +132,12 @@ class HttpProxyImplThread extends Thread {
                                 continue;
                             }
 
-                            @Nullable HttpProxy.Authentication authentication = getProxy().getAuthentication();
-                            if (authentication != null && !request.getMethod().equalsIgnoreCase("CONNECT")) {
+                            @Nullable HttpProxy.Authorization authorization = getProxy().getAuthentication();
+                            if (authorization != null && !request.getMethod().equalsIgnoreCase("CONNECT")) {
                                 @Nullable HttpResponse authResponse = null;
 
                                 try {
-                                    if (!authentication.validate(socket, request)) {
+                                    if (!authorization.validate(socket, request)) {
                                         authResponse = HttpUtils.unauthorizedResponse(request.getVersion());
                                     }
                                 } catch (@NotNull Throwable throwable) {

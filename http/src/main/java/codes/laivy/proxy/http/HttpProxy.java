@@ -23,20 +23,20 @@ public abstract class HttpProxy extends Proxy {
     public static void main(String[] args) {
     }
 
-    public static @NotNull HttpProxy create(@NotNull InetSocketAddress address, @Nullable Authentication authentication) throws IOException {
-        return new HttpProxyImpl(address, authentication);
+    public static @NotNull HttpProxy create(@NotNull InetSocketAddress address, @Nullable Authorization authorization) throws IOException {
+        return new HttpProxyImpl(address, authorization);
     }
 
     // Object
 
     private final @NotNull InetSocketAddress address;
-    private final @Nullable Authentication authentication;
+    private final @Nullable Authorization authorization;
 
-    protected HttpProxy(@NotNull InetSocketAddress address, @Nullable Authentication authentication) {
+    protected HttpProxy(@NotNull InetSocketAddress address, @Nullable Authorization authorization) {
         super(Type.HTTP, address);
 
         this.address = address;
-        this.authentication = authentication;
+        this.authorization = authorization;
     }
 
     // Getters
@@ -51,8 +51,8 @@ public abstract class HttpProxy extends Proxy {
      * A proxy authentication can be used to allow only certain users. If the authentication is null, the user who makes a request using it will not need to provide the authentication details
      * @return the authentication object or null if none is required
      */
-    public @Nullable Authentication getAuthentication() {
-        return this.authentication;
+    public @Nullable Authorization getAuthentication() {
+        return this.authorization;
     }
 
     /**
@@ -95,13 +95,13 @@ public abstract class HttpProxy extends Proxy {
     // Classes
 
     /**
-     * The authentication class is used to allow only users who provide some degree of authentication to use the proxy
+     * The authorization class is used to allow only users who provide some degree of authentication to use the proxy
      * @since 1.0-SNAPSHOT
      */
-    public interface Authentication {
+    public interface Authorization {
 
         /**
-         * Creates an authentication object that uses the bearer token scheme
+         * Creates an authorization object that uses the bearer token scheme
          * <p style="color:red">Note: After the first successfully validation, it removes the authorization header. It means if you try to validate again, it will return false.</p>
          *
          * @since 1.0-SNAPSHOT
@@ -111,7 +111,7 @@ public abstract class HttpProxy extends Proxy {
          * @param predicate a function that checks if the token is valid
          * @return an authentication object that implements the bearer token logic
          */
-        static @NotNull Authentication bearer(@NotNull Predicate<String> predicate) {
+        static @NotNull Authorization bearer(@NotNull Predicate<String> predicate) {
             final @NotNull String headerName = "Proxy-Authorization";
 
             return (socket, request) -> {
@@ -146,7 +146,7 @@ public abstract class HttpProxy extends Proxy {
         }
 
         /**
-         * Creates an authentication object that uses the basic token scheme
+         * Creates an authorization object that uses the basic token scheme
          * <p style="color:red">Note: After the first successfully validation, it removes the authorization header. It means if you try to validate again, it will return false.</p>
          *
          * @since 1.0-SNAPSHOT
@@ -156,7 +156,7 @@ public abstract class HttpProxy extends Proxy {
          * @param predicate a function that checks if the token is valid
          * @return an authentication object that implements the bearer token logic
          */
-        static @NotNull Authentication basic(@NotNull Predicate<UsernamePasswordCredentials> predicate) {
+        static @NotNull Authorization basic(@NotNull Predicate<UsernamePasswordCredentials> predicate) {
             final @NotNull String headerName = "Proxy-Authorization";
 
             return (socket, request) -> {
@@ -186,7 +186,7 @@ public abstract class HttpProxy extends Proxy {
         }
 
         /**
-         * Validates the authentication by analyzing the socket and the request, returns true if the authentication was approved and the user is able to use the proxy or false otherwise. This method is invoked whenever a new request is made
+         * Validates the authorization by analyzing the socket and the request, returns true if the authentication was approved and the user is able to use the proxy or false otherwise. This method is invoked whenever a new request is made
          *
          * @since 1.0-SNAPSHOT
          * @author Daniel Richard (Laivy)

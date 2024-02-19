@@ -1,5 +1,5 @@
 import codes.laivy.proxy.http.HttpProxy;
-import codes.laivy.proxy.http.HttpProxy.Authentication;
+import codes.laivy.proxy.http.HttpProxy.Authorization;
 import org.apache.hc.core5.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection;
@@ -54,7 +54,7 @@ public final class HttpProxyTest {
 
         // Prepare connection and start http proxy
         @NotNull Connection connection;
-        @NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, Authentication.bearer(string -> string.equals(validToken)));
+        @NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, Authorization.bearer(string -> string.equals(validToken)));
         Assert.assertTrue(proxy.start());
 
         // Test with JSoup without authorization

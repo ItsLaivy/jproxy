@@ -59,8 +59,8 @@ public class HttpProxyImpl extends HttpProxy {
 
     // Constructor
 
-    public HttpProxyImpl(@NotNull InetSocketAddress address, @Nullable Authentication authentication) {
-        super(address, authentication);
+    public HttpProxyImpl(@NotNull InetSocketAddress address, @Nullable HttpProxy.Authorization authorization) {
+        super(address, authorization);
     }
 
     // Getters
