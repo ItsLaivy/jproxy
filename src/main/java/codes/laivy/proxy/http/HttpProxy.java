@@ -1,6 +1,5 @@
 package codes.laivy.proxy.http;
 
-import codes.laivy.proxy.Proxy;
 import codes.laivy.proxy.http.impl.HttpProxyImpl;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.core5.http.HttpException;
@@ -11,31 +10,47 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public interface HttpProxy extends Proxy {
+public abstract class HttpProxy extends Proxy {
 
     // Initializers
 
-    static @NotNull HttpProxy create(@Nullable Authentication authentication, @NotNull InetSocketAddress address) throws IOException {
-        return new HttpProxyImpl(authentication, address);
+    public static @NotNull HttpProxy create(@NotNull InetSocketAddress address, @Nullable Authentication authentication) throws IOException {
+        return new HttpProxyImpl(address, authentication);
+    }
+
+    // Object
+
+    private final @NotNull InetSocketAddress address;
+    private final @Nullable Authentication authentication;
+
+    protected HttpProxy(@NotNull InetSocketAddress address, @Nullable Authentication authentication) {
+        super(Type.HTTP, address);
+
+        this.address = address;
+        this.authentication = authentication;
     }
 
     // Getters
 
-    @NotNull ServerSocket getServer();
+    public final @NotNull InetSocketAddress getAddress() {
+        return address;
+    }
+
+    public abstract @Nullable ServerSocket getServer();
 
     /**
      * A proxy authentication can be used to allow only certain users. If the authentication is null, the user who makes a request using it will not need to provide the authentication details
      * @return the authentication object or null if none is required
      */
-    @Nullable Authentication getAuthentication();
+    public @Nullable Authentication getAuthentication() {
+        return this.authentication;
+    }
 
     /**
      * This method is responsible for making an HTTP request directly using the proxy, this method does not check
@@ -50,13 +65,24 @@ public interface HttpProxy extends Proxy {
      * @throws HttpException if there is an error in the request or response serialization or parsing
      */
     @Blocking
-    @NotNull HttpResponse request(@NotNull Socket socket, @NotNull HttpRequest request) throws IOException, HttpException;
+    public abstract @NotNull HttpResponse request(@NotNull Socket socket, @NotNull HttpRequest request) throws IOException, HttpException;
 
     // Loaders
 
-    boolean start() throws Exception;
+    public abstract boolean start() throws Exception;
 
-    boolean stop() throws Exception;
+    public abstract boolean stop() throws Exception;
+
+    // java.net.Proxy natives
+
+    @Override
+    public final SocketAddress address() {
+        return getAddress();
+    }
+    @Override
+    public final @NotNull Type type() {
+        return Type.HTTP;
+    }
 
     // Classes
 
@@ -64,7 +90,7 @@ public interface HttpProxy extends Proxy {
      * The authentication class is used to allow only users who provide some degree of authentication to use the proxy
      * @since 1.0-SNAPSHOT
      */
-    interface Authentication {
+    public interface Authentication {
 
         /**
          * Creates an authentication object that uses the bearer token scheme

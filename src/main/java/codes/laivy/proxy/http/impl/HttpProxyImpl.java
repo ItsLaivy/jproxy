@@ -18,24 +18,14 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static codes.laivy.proxy.http.utils.HttpSerializers.getHttpResponse;
 
-public class HttpProxyImpl implements HttpProxy {
+public class HttpProxyImpl extends HttpProxy {
 
-    // Address
-
-    private final @Nullable Authentication authentication;
-
-    private final @NotNull InetSocketAddress address;
-    private final @NotNull Proxy proxy;
-
-    // Socket
-    private final @NotNull ServerSocket server;
+    protected volatile @Nullable ServerSocket server;
     protected @Nullable Selector selector;
     protected @Nullable java.lang.Thread thread;
 
@@ -44,18 +34,8 @@ public class HttpProxyImpl implements HttpProxy {
 
     // Constructor
 
-    public HttpProxyImpl(@Nullable Authentication authentication, @NotNull InetSocketAddress address) throws IOException {
-        this(authentication, address, ServerSocketChannel.open());
-    }
-    protected HttpProxyImpl(@Nullable Authentication authentication, @NotNull InetSocketAddress address, @NotNull ServerSocketChannel channel) throws IOException {
-        this.authentication = authentication;
-        this.address = address;
-
-        // Proxy
-        this.proxy = new Proxy(Proxy.Type.HTTP, address);
-        // Socket
-        channel.configureBlocking(false);
-        this.server = channel.socket();
+    public HttpProxyImpl(@NotNull InetSocketAddress address, @Nullable Authentication authentication) {
+        super(address, authentication);
     }
 
     // Getters
@@ -66,8 +46,9 @@ public class HttpProxyImpl implements HttpProxy {
     public final @NotNull Requests getRequests() {
         return requests;
     }
-    public final @NotNull ServerSocketChannel getServerChannel() {
-        return server.getChannel();
+    public final @Nullable ServerSocketChannel getServerChannel() {
+        @Nullable ServerSocket channel = getServer();
+        return channel != null ? channel.getChannel() : null;
     }
 
     /**
@@ -80,23 +61,8 @@ public class HttpProxyImpl implements HttpProxy {
     // Natives
 
     @Override
-    public final @NotNull InetSocketAddress getAddress() {
-        return address;
-    }
-
-    @Override
-    public @NotNull Proxy getHandle() {
-        return this.proxy;
-    }
-
-    @Override
-    public final @NotNull ServerSocket getServer() {
+    public final @Nullable ServerSocket getServer() {
         return server;
-    }
-
-    @Override
-    public final @Nullable Authentication getAuthentication() {
-        return authentication;
     }
 
     @Override
@@ -166,11 +132,16 @@ public class HttpProxyImpl implements HttpProxy {
 
     @Override
     public synchronized boolean start() throws Exception {
-        if (getServerChannel().socket().isBound() || selector != null) {
+        if ((getServerChannel() != null && getServerChannel().socket().isBound()) || selector != null) {
             return false;
         }
 
         this.selector = Selector.open();
+
+        // Socket
+        @NotNull ServerSocketChannel channel = ServerSocketChannel.open();
+        channel.configureBlocking(false);
+        this.server = channel.socket();
 
         getServerChannel().bind(getAddress());
         getServerChannel().register(getSelector(), SelectionKey.OP_ACCEPT);
@@ -183,32 +154,20 @@ public class HttpProxyImpl implements HttpProxy {
 
     @Override
     public synchronized boolean stop() throws Exception {
-        if (!getServerChannel().socket().isBound() || getSelector() == null || this.thread == null) {
+        if ((getServerChannel() != null && !getServerChannel().socket().isBound()) || getSelector() == null || this.thread == null) {
             return false;
         }
 
+        this.thread.interrupt();
+
         getServerChannel().close();
         getSelector().close();
-        this.thread.interrupt();
 
         this.selector = null;
         this.thread = null;
+        this.server = null;
 
         return true;
-    }
-
-    // Equals
-
-    @Override
-    public boolean equals(@Nullable Object object) {
-        if (this == object) return true;
-        if (!(object instanceof HttpProxyImpl)) return false;
-        HttpProxyImpl httpProxy = (HttpProxyImpl) object;
-        return Objects.equals(getAddress(), httpProxy.getAddress());
-    }
-    @Override
-    public int hashCode() {
-        return Objects.hash(getAddress());
     }
 
     // Classes
@@ -252,12 +211,6 @@ public class HttpProxyImpl implements HttpProxy {
 
     protected static final class Thread extends java.lang.Thread {
 
-        // Static initializers
-
-        private static final @NotNull AtomicInteger COUNT = new AtomicInteger(0);
-
-        // Object
-
         private final @NotNull HttpProxyImpl proxy;
 
         public Thread(@NotNull HttpProxyImpl proxy) {
@@ -279,12 +232,13 @@ public class HttpProxyImpl implements HttpProxy {
         public void run() {
             // todo: debug
             @Nullable Selector selector = getProxy().getSelector();
+            @Nullable ServerSocketChannel channel = getProxy().getServerChannel();
 
-            if (selector == null) {
+            if (selector == null || channel == null) {
                 throw new IllegalStateException("the http proxy aren't active");
             }
 
-            while (getProxy().getServer().isBound() && selector.isOpen()) {
+            while (channel.socket().isBound() && selector.isOpen()) {
                 @NotNull Set<SelectionKey> selectedKeys;
                 @NotNull Iterator<SelectionKey> keyIterator;
 
