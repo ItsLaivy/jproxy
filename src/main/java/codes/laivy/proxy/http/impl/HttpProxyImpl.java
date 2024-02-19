@@ -46,10 +46,6 @@ public class HttpProxyImpl extends HttpProxy {
     public final @NotNull Requests getRequests() {
         return requests;
     }
-    public final @Nullable ServerSocketChannel getServerChannel() {
-        @Nullable ServerSocket channel = getServer();
-        return channel != null ? channel.getChannel() : null;
-    }
 
     /**
      * @return the selector object that handles the proxy connections or null if the proxy is not running
@@ -90,11 +86,12 @@ public class HttpProxyImpl extends HttpProxy {
         }
 
         // Request
-        // todo: add proxy to socket channel
         try (@NotNull SocketChannel channel = SocketChannel.open()) {
             getRequests().add(channel.socket());
 
+            // todo: previous address
             @NotNull InetSocketAddress address = HttpUtils.getAddress(null, clientRequest.getUri().toString());
+            channel.bind(new InetSocketAddress(getAddress().getAddress(), 0));
             channel.connect(address);
 
             try {
@@ -132,7 +129,9 @@ public class HttpProxyImpl extends HttpProxy {
 
     @Override
     public synchronized boolean start() throws Exception {
-        if ((getServerChannel() != null && getServerChannel().socket().isBound()) || selector != null) {
+        @Nullable ServerSocket server = getServer();
+
+        if ((server != null && server.isBound()) || selector != null) {
             return false;
         }
 
@@ -143,8 +142,8 @@ public class HttpProxyImpl extends HttpProxy {
         channel.configureBlocking(false);
         this.server = channel.socket();
 
-        getServerChannel().bind(getAddress());
-        getServerChannel().register(getSelector(), SelectionKey.OP_ACCEPT);
+        channel.socket().bind(getAddress());
+        channel.register(getSelector(), SelectionKey.OP_ACCEPT);
 
         this.thread = new HttpProxyImpl.Thread(this);
         this.thread.start();
@@ -154,13 +153,15 @@ public class HttpProxyImpl extends HttpProxy {
 
     @Override
     public synchronized boolean stop() throws Exception {
-        if ((getServerChannel() != null && !getServerChannel().socket().isBound()) || getSelector() == null || this.thread == null) {
+        @Nullable ServerSocket server = getServer();
+
+        if ((server == null || !server.isBound()) || getSelector() == null || this.thread == null) {
             return false;
         }
 
         this.thread.interrupt();
 
-        getServerChannel().close();
+        server.close();
         getSelector().close();
 
         this.selector = null;
@@ -230,15 +231,14 @@ public class HttpProxyImpl extends HttpProxy {
 
         @Override
         public void run() {
-            // todo: debug
             @Nullable Selector selector = getProxy().getSelector();
-            @Nullable ServerSocketChannel channel = getProxy().getServerChannel();
+            @Nullable ServerSocket server = getProxy().getServer();
 
-            if (selector == null || channel == null) {
+            if (selector == null || server == null) {
                 throw new IllegalStateException("the http proxy aren't active");
             }
 
-            while (channel.socket().isBound() && selector.isOpen()) {
+            while (server.isBound() && selector.isOpen()) {
                 @NotNull Set<SelectionKey> selectedKeys;
                 @NotNull Iterator<SelectionKey> keyIterator;
 
@@ -262,10 +262,8 @@ public class HttpProxyImpl extends HttpProxy {
                         keyIterator.remove();
 
                         if (isAcceptable(key)) {
-                            @NotNull ServerSocketChannel server = (ServerSocketChannel) key.channel();
-
                             try {
-                                @NotNull SocketChannel clientSocket = server.accept();
+                                @NotNull SocketChannel clientSocket = server.accept().getChannel();
 
                                 try {
                                     clientSocket.configureBlocking(false);
