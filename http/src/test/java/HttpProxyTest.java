@@ -1,4 +1,5 @@
 import codes.laivy.proxy.http.HttpProxy;
+import codes.laivy.proxy.http.HttpProxy.Authentication;
 import org.apache.hc.core5.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection;
@@ -40,6 +41,31 @@ public final class HttpProxyTest {
                 .ignoreHttpErrors(true);
         @NotNull Connection.Response response = connection.execute();
         Assert.assertEquals(HttpStatus.SC_OK, response.statusCode());
+
+        // End activities and stop
+        Assert.assertTrue(proxy.stop());
+    }
+
+    @Test
+    public void connectInsecureWithAuthorization() throws Throwable {
+        @NotNull String validToken = "valid_token_string";
+        @NotNull String invalidToken = "invalid_token_string";
+        Assert.assertNotEquals(validToken, invalidToken);
+
+        // Prepare connection and start http proxy
+        @NotNull Connection connection;
+        @NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, Authentication.bearer(string -> string.equals(validToken)));
+        Assert.assertTrue(proxy.start());
+
+        // Test with JSoup without authorization
+        connection = Jsoup.connect("http://localhost/").proxy(proxy).ignoreContentType(true).ignoreHttpErrors(true);
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, connection.execute().statusCode());
+        // Test with JSoup with invalid authorization
+        connection = Jsoup.connect("http://localhost/").proxy(proxy).header("Proxy-Authorization", "Bearer " + invalidToken).ignoreContentType(true).ignoreHttpErrors(true);
+        Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, connection.execute().statusCode());
+        // Test with JSoup with valid authorization
+        connection = Jsoup.connect("http://localhost/").proxy(proxy).header("Proxy-Authorization", "Bearer " + validToken).ignoreContentType(true).ignoreHttpErrors(true);
+        Assert.assertEquals(HttpStatus.SC_OK, connection.execute().statusCode());
 
         // End activities and stop
         Assert.assertTrue(proxy.stop());
