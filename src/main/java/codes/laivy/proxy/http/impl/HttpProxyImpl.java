@@ -3,11 +3,14 @@ package codes.laivy.proxy.http.impl;
 import codes.laivy.proxy.http.HttpProxy;
 import codes.laivy.proxy.http.utils.HttpSerializers;
 import codes.laivy.proxy.http.utils.HttpUtils;
+import io.netty.util.concurrent.DefaultThreadFactory;
+import io.netty.util.concurrent.ThreadPerTaskExecutor;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.message.BasicHttpRequest;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
@@ -19,11 +22,33 @@ import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static codes.laivy.proxy.http.utils.HttpSerializers.getHttpResponse;
 
 public class HttpProxyImpl extends HttpProxy {
+
+    // Default executor used on #getExecutor
+
+    private final @NotNull ThreadPerTaskExecutor executor = new ThreadPerTaskExecutor(new ThreadFactory() {
+
+        private final @NotNull AtomicInteger count = new AtomicInteger(0);
+
+        @Override
+        public java.lang.Thread newThread(@NotNull Runnable r) {
+            @NotNull java.lang.Thread thread = new java.lang.Thread(r);
+            thread.setDaemon(false);
+            thread.setName("Proxy '" + getAddress() + "' request #");
+
+            return thread;
+        }
+    });
+
+    // Object
 
     protected volatile @Nullable ServerSocket server;
     protected @Nullable Selector selector;
@@ -39,6 +64,11 @@ public class HttpProxyImpl extends HttpProxy {
     }
 
     // Getters
+
+    @ApiStatus.OverrideOnly
+    public @NotNull Executor getExecutor(@NotNull Socket socket, @NotNull HttpRequest request) {
+        return executor;
+    }
 
     public final @Nullable java.lang.Thread getThread() {
         return thread;
@@ -333,22 +363,24 @@ public class HttpProxyImpl extends HttpProxy {
                                     }
                                 }
 
-                                try {
-                                    if (request.getMethod().equalsIgnoreCase("CONNECT")) {
-                                        clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getVersion())));
-                                        System.out.println("Send 4");
-                                    } else try {
-                                        // todo: blocking
-                                        @NotNull HttpResponse response = getProxy().request(socket, request);
-                                        clientChannel.write(getHttpResponse().serialize(response));
-                                        System.out.println("Send 5 - '" + new String(getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
-                                    } catch (@NotNull Throwable throwable) {
-                                        clientChannel.write(HttpSerializers.getHttpResponse().serialize(HttpUtils.clientErrorResponse(request.getVersion(), "cannot process request")));
-                                        clientChannel.close();
+                                CompletableFuture.runAsync(() -> {
+                                    try {
+                                        if (request.getMethod().equalsIgnoreCase("CONNECT")) {
+                                            clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getVersion())));
+                                            System.out.println("Send 4");
+                                        } else try {
+                                            // todo: blocking
+                                            @NotNull HttpResponse response = getProxy().request(socket, request);
+                                            clientChannel.write(getHttpResponse().serialize(response));
+                                            System.out.println("Send 5 - '" + new String(getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
+                                        } catch (@NotNull Throwable throwable) {
+                                            clientChannel.write(HttpSerializers.getHttpResponse().serialize(HttpUtils.clientErrorResponse(request.getVersion(), "cannot process request")));
+                                            clientChannel.close();
+                                        }
+                                    } catch (@NotNull Exception e) {
+                                        e.printStackTrace();
                                     }
-                                } catch (@NotNull IOException e) {
-                                    e.printStackTrace();
-                                }
+                                }, getProxy().getExecutor(socket, request));
                             } catch (@NotNull Throwable throwable) {
                                 getUncaughtExceptionHandler().uncaughtException(this, throwable);
                             }
