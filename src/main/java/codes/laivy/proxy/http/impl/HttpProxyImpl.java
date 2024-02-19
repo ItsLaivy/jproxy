@@ -312,7 +312,6 @@ public class HttpProxyImpl implements HttpProxy {
 
                             try {
                                 @NotNull SocketChannel clientSocket = server.accept();
-                                System.out.println("Connected '" + clientSocket.socket().getPort() + "'");
 
                                 try {
                                     clientSocket.configureBlocking(false);
@@ -392,7 +391,8 @@ public class HttpProxyImpl implements HttpProxy {
                                         clientChannel.write(getHttpResponse().serialize(response));
                                         System.out.println("Send 5 - '" + new String(getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
                                     } catch (@NotNull Throwable throwable) {
-                                        throwable.printStackTrace();
+                                        clientChannel.write(HttpSerializers.getHttpResponse().serialize(HttpUtils.clientErrorResponse(request.getVersion(), "cannot process request")));
+                                        clientChannel.close();
                                     }
                                 } catch (@NotNull IOException e) {
                                     e.printStackTrace();

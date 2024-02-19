@@ -3,6 +3,7 @@ package codes.laivy.proxy.http.utils;
 import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.ProtocolVersion;
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.message.BasicHttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,11 +41,11 @@ public final class HttpUtils {
     }
 
     /**
-     * Creates a response with the status code 500 (Internal Server Error) and a message indicating that the proxy failed to process the request
-     * @return an HTTP response object with the 500 status code and a message
+     * Creates a response with the status code 400 (Client Error) and a message indicating that the proxy failed to process the client request
+     * @return an HTTP response object with the 400 status code and a message
      */
-    public static @NotNull HttpResponse errorResponse(@NotNull ProtocolVersion version, @NotNull String message) {
-        @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, message);
+    public static @NotNull HttpResponse clientErrorResponse(@NotNull ProtocolVersion version, @NotNull String message) {
+        @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_CLIENT_ERROR, message);
         response.setVersion(version);
 
         return response;

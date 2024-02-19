@@ -12,10 +12,12 @@ import java.net.InetSocketAddress;
 
 public final class HttpProxyTest {
 
+    private static final @NotNull InetSocketAddress PROXY_ADDRESS = new InetSocketAddress("localhost", 5555);
+
     @Test
     public void connectInsecure() throws Throwable {
         // Start native http proxy
-        @NotNull HttpProxy proxy = HttpProxy.create(null, new InetSocketAddress("localhost", 1250));
+        @NotNull HttpProxy proxy = HttpProxy.create(null, PROXY_ADDRESS);
         Assert.assertTrue(proxy.start());
 
         // Test with JSoup
