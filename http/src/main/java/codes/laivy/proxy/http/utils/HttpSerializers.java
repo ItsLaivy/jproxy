@@ -44,8 +44,9 @@ public final class HttpSerializers {
 
         @Override
         public @UnknownNullability HttpRequest deserialize(@NotNull ByteBuffer buffer) throws SerializationException {
-            @NotNull String request = new String(buffer.array(), StandardCharsets.UTF_8);
-            @NotNull String[] parts = request.replaceAll("\r", "").replaceAll("\n", " ").split(" ");
+            // todo: request with content
+            @NotNull String request = new String(buffer.array(), StandardCharsets.UTF_8).replaceAll("\r", "").replaceAll("\n", " ");
+            @NotNull String[] parts = request.split(" ");
             @NotNull HttpRequest httpRequest;
 
             try {
@@ -63,14 +64,14 @@ public final class HttpSerializers {
 
             try {
                 // Headers
-                @NotNull String headers = request.substring(Arrays.stream(parts).map(string -> string + " ").collect(Collectors.joining()).length());
+                @NotNull String headers = request.substring(Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length());
                 @NotNull Matcher matcher = HEADERS_SPLIT_PATTERN.matcher(headers);
 
                 while (matcher.find()) {
                     @NotNull String key = matcher.group(1);
                     @NotNull String value = matcher.group(2);
 
-                    httpRequest.addHeader(key, value);
+                    httpRequest.setHeader(new BasicHeader(key, value));
                 }
             } catch (@NotNull Throwable throwable) {
                 throw new SerializationException("cannot read request headers", throwable);
