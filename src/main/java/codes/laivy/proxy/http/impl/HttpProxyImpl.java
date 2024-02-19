@@ -3,14 +3,11 @@ package codes.laivy.proxy.http.impl;
 import codes.laivy.proxy.http.HttpProxy;
 import codes.laivy.proxy.http.utils.HttpSerializers;
 import codes.laivy.proxy.http.utils.HttpUtils;
-import com.sun.jndi.toolkit.url.Uri;
-import org.apache.http.Header;
-import org.apache.http.HttpException;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
-import org.apache.http.message.BasicHttpRequest;
-import org.apache.http.message.BasicRequestLine;
-import org.apache.http.message.BasicStatusLine;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.message.BasicHttpRequest;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
@@ -108,10 +105,11 @@ public class HttpProxyImpl implements HttpProxy {
         @NotNull HttpRequest request;
 
         try {
-            @NotNull URI uri = new URI(clientRequest.getRequestLine().getUri());
-            request = new BasicHttpRequest(new BasicRequestLine(clientRequest.getRequestLine().getMethod(), uri.getPath(), clientRequest.getProtocolVersion()));
+            @NotNull URI uri = clientRequest.getUri();
+            request = new BasicHttpRequest(clientRequest.getMethod(), uri.getPath());
+            request.setVersion(clientRequest.getVersion());
 
-            for (@NotNull Header header : clientRequest.getAllHeaders()) {
+            for (@NotNull Header header : clientRequest.getHeaders()) {
                 request.addHeader(header);
             }
 
@@ -129,7 +127,7 @@ public class HttpProxyImpl implements HttpProxy {
         try (@NotNull SocketChannel channel = SocketChannel.open()) {
             getRequests().add(channel.socket());
 
-            @NotNull InetSocketAddress address = HttpUtils.getAddress(null, clientRequest.getRequestLine().getUri());
+            @NotNull InetSocketAddress address = HttpUtils.getAddress(null, clientRequest.getUri().toString());
             channel.connect(address);
 
             try {
@@ -338,13 +336,19 @@ public class HttpProxyImpl implements HttpProxy {
                                     @NotNull ByteBuffer readBuffer = ByteBuffer.allocate(1024);
                                     @NotNull StringBuilder stringBuilder = new StringBuilder();
 
-                                    while (clientChannel.read(readBuffer) > 0) {
+                                    int read = clientChannel.read(readBuffer);
+
+                                    if (read == -1) {
+                                        clientChannel.close();
+                                        continue;
+                                    } else while (read > 0) {
                                         readBuffer.flip();
                                         stringBuilder.append(StandardCharsets.UTF_8.decode(readBuffer));
                                         readBuffer.clear();
+
+                                        read = clientChannel.read(readBuffer);
                                     }
 
-                                    System.out.println("Read: '" + stringBuilder.toString().replaceAll("\r", "").replaceAll("\n", " ") + "'");
                                     buffer = ByteBuffer.wrap(stringBuilder.toString().getBytes(StandardCharsets.UTF_8));
                                 } catch (@NotNull IOException ignore) {
                                     clientChannel.close();
@@ -359,16 +363,16 @@ public class HttpProxyImpl implements HttpProxy {
                                 }
 
                                 @Nullable Authentication authentication = getProxy().getAuthentication();
-                                if (authentication != null && !request.getRequestLine().getMethod().equalsIgnoreCase("CONNECT")) {
+                                if (authentication != null && !request.getMethod().equalsIgnoreCase("CONNECT")) {
                                     @Nullable HttpResponse authResponse = null;
 
                                     try {
                                         if (!authentication.validate(socket, request)) {
-                                            authResponse = HttpUtils.unauthorizedResponse(request.getProtocolVersion());
+                                            authResponse = HttpUtils.unauthorizedResponse(request.getVersion());
                                         }
                                     } catch (@NotNull Throwable throwable) {
                                         getUncaughtExceptionHandler().uncaughtException(this, throwable);
-                                        authResponse = HttpUtils.unauthorizedResponse(request.getProtocolVersion());
+                                        authResponse = HttpUtils.unauthorizedResponse(request.getVersion());
                                     }
 
                                     if (authResponse != null) {
@@ -378,8 +382,8 @@ public class HttpProxyImpl implements HttpProxy {
                                 }
 
                                 try {
-                                    if (request.getRequestLine().getMethod().equalsIgnoreCase("CONNECT")) {
-                                        clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getProtocolVersion())));
+                                    if (request.getMethod().equalsIgnoreCase("CONNECT")) {
+                                        clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getVersion())));
                                         System.out.println("Send 4");
                                     } else try {
                                         System.out.println("Performing request");
@@ -387,7 +391,7 @@ public class HttpProxyImpl implements HttpProxy {
                                         @NotNull HttpResponse response = getProxy().request(socket, request);
                                         System.out.println("Performing response");
                                         clientChannel.write(getHttpResponse().serialize(response));
-                                        System.out.println("Send 5");
+                                        System.out.println("Send 5 - '" + new String(getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
                                     } catch (@NotNull Throwable throwable) {
                                         throwable.printStackTrace();
                                     }

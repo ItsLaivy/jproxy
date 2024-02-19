@@ -1,11 +1,9 @@
 package codes.laivy.proxy.http.utils;
 
-
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.ProtocolVersion;
-import org.apache.http.message.BasicHttpResponse;
-import org.apache.http.message.BasicStatusLine;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.ProtocolVersion;
+import org.apache.hc.core5.http.message.BasicHttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,7 +22,10 @@ public final class HttpUtils {
      * @return an HTTP response object with the 200 status code and a message
      */
     public static @NotNull HttpResponse successResponse(@NotNull ProtocolVersion version) {
-        return new BasicHttpResponse(version, HttpStatus.SC_OK, "connection established");
+        @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_OK, "connection established");
+        response.setVersion(version);
+
+        return response;
     }
 
     /**
@@ -32,7 +33,10 @@ public final class HttpUtils {
      * @return an HTTP response object with the 401 status code and a message
      */
     public static @NotNull HttpResponse unauthorizedResponse(@NotNull ProtocolVersion version) {
-        return new BasicHttpResponse(new BasicStatusLine(version, HttpStatus.SC_UNAUTHORIZED, "proxy authorization failed"));
+        @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_UNAUTHORIZED, "proxy authorization failed");
+        response.setVersion(version);
+
+        return response;
     }
 
     /**
@@ -40,7 +44,10 @@ public final class HttpUtils {
      * @return an HTTP response object with the 500 status code and a message
      */
     public static @NotNull HttpResponse errorResponse(@NotNull ProtocolVersion version, @NotNull String message) {
-        return new BasicHttpResponse(new BasicStatusLine(version, HttpStatus.SC_INTERNAL_SERVER_ERROR, message));
+        @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, message);
+        response.setVersion(version);
+
+        return response;
     }
 
     public static @NotNull InetSocketAddress getAddress(@Nullable InetSocketAddress previous, @NotNull String path) throws URISyntaxException {

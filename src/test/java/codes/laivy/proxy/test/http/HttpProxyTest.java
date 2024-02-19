@@ -1,7 +1,7 @@
 package codes.laivy.proxy.test.http;
 
 import codes.laivy.proxy.http.HttpProxy;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;

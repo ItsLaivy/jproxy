@@ -2,23 +2,18 @@ package codes.laivy.proxy.http;
 
 import codes.laivy.proxy.Proxy;
 import codes.laivy.proxy.http.impl.HttpProxyImpl;
-import codes.laivy.proxy.http.utils.HttpSerializers;
-import org.apache.http.HttpException;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
-import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.HttpResponse;
 import org.jetbrains.annotations.Blocking;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.function.Predicate;
@@ -55,28 +50,7 @@ public interface HttpProxy extends Proxy {
      * @throws HttpException if there is an error in the request or response serialization or parsing
      */
     @Blocking
-    default @NotNull HttpResponse request(@NotNull Socket socket, @NotNull HttpRequest request) throws IOException, HttpException {
-        try (@NotNull Socket requestSocket = new Socket(getHandle())) {
-            requestSocket.connect(new InetSocketAddress(request.getRequestLine().getUri(), 80));
-
-            try {
-                // Read request
-                @NotNull InputStream stream = socket.getInputStream();
-                @NotNull ReadableByteChannel channel = Channels.newChannel(stream);
-                @NotNull ByteBuffer buffer = ByteBuffer.allocate(stream.available());
-
-                //noinspection StatementWithEmptyBody
-                while (channel.read(buffer) != -1) {
-                }
-
-                buffer.flip();
-
-                return HttpSerializers.getHttpResponse().deserialize(buffer);
-            } catch (@NotNull Throwable throwable) {
-                throw new HttpException("cannot read http response", throwable);
-            }
-        }
-    }
+    @NotNull HttpResponse request(@NotNull Socket socket, @NotNull HttpRequest request) throws IOException, HttpException;
 
     // Loaders
 
@@ -160,7 +134,7 @@ public interface HttpProxy extends Proxy {
                     @NotNull String encoded = Arrays.stream(auth).skip(1).map(string -> string + " ").collect(Collectors.joining());
                     @NotNull String[] decoded = new String(Base64.getDecoder().decode(encoded)).split(":");
 
-                    return predicate.test(new UsernamePasswordCredentials(decoded[0], decoded[1]));
+                    return predicate.test(new UsernamePasswordCredentials(decoded[0], decoded[1].toCharArray()));
                 } catch (@NotNull Throwable ignore) {
                     return false;
                 } finally {

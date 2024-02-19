@@ -1,16 +1,13 @@
 package codes.laivy.proxy.http.utils;
 
-import org.apache.http.*;
-import org.apache.http.entity.BasicHttpEntity;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.message.BasicHttpRequest;
-import org.apache.http.message.BasicHttpResponse;
-import org.apache.http.message.BasicStatusLine;
+import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.message.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
 
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -31,10 +28,9 @@ public final class HttpSerializers {
         return new Serializer<HttpRequest>() {
             @Override
             public @NotNull ByteBuffer serialize(@UnknownNullability HttpRequest request) throws Exception {
-                @NotNull RequestLine line = request.getRequestLine();
-                @NotNull StringBuilder builder = new StringBuilder(line.getMethod() + " " + line.getUri() + " " + line.getProtocolVersion() + "\n");
+                @NotNull StringBuilder builder = new StringBuilder(request.getMethod() + " " + request.getUri() + " " + request.getVersion() + "\n");
 
-                for (@NotNull Header header : request.getAllHeaders()) {
+                for (@NotNull Header header : request.getHeaders()) {
                     builder.append(header.getName()).append(": ").append(header.getValue()).append("\n");
                 }
 
@@ -52,11 +48,12 @@ public final class HttpSerializers {
                 try {
                     // Method, uri and protocol version
                     @NotNull String method = parts[0];
-                    @NotNull String uri = parts[1];
+                    @NotNull URI uri = new URI(parts[1]);
                     @NotNull ProtocolVersion version = getProtocolVersion().deserialize(ByteBuffer.wrap(parts[2].getBytes(StandardCharsets.UTF_8)));
 
                     // Create request
-                    httpRequest = new BasicHttpRequest(method, uri, version);
+                    httpRequest = new BasicHttpRequest(method, uri);
+                    httpRequest.setVersion(version);
                 } catch (@NotNull Throwable throwable) {
                     throw new HttpException("cannot read request basics", throwable);
                 }
@@ -84,11 +81,14 @@ public final class HttpSerializers {
         return new Serializer<HttpResponse>() {
             @Override
             public @NotNull ByteBuffer serialize(@UnknownNullability HttpResponse response) throws HttpException {
-                @NotNull StatusLine line = response.getStatusLine();
-                @NotNull StringBuilder builder = new StringBuilder(line.getProtocolVersion() + " " + line.getStatusCode() + " " + line.getReasonPhrase() + "\n");
+                if (response.getVersion() == null) {
+                    throw new NullPointerException("response version cannot be null");
+                }
+
+                @NotNull StringBuilder builder = new StringBuilder(response.getVersion() + " " + response.getCode() + " " + response.getReasonPhrase() + "\n");
 
                 try {
-                    for (Header header : response.getAllHeaders()) {
+                    for (Header header : response.getHeaders()) {
                         builder.append(header.getName()).append(": ").append(header.getValue()).append("\n");
                     }
                 } catch (@NotNull Throwable throwable) {
@@ -97,8 +97,9 @@ public final class HttpSerializers {
 
                 try {
                     builder.append("\n");
-                    if (response.getEntity() != null) {
-                        builder.append(new Scanner(response.getEntity().getContent()).useDelimiter("\\A").next());
+
+                    if (response instanceof HttpEntityContainer) {
+                        builder.append(new Scanner(((HttpEntityContainer) response).getEntity().getContent()).useDelimiter("\\A").next());
                     }
                 } catch (@NotNull Throwable throwable) {
                     throw new HttpException("cannot serialize http response content", throwable);
@@ -112,27 +113,28 @@ public final class HttpSerializers {
                 @NotNull String[] content = new String(buffer.array(), StandardCharsets.UTF_8).replaceAll("\r", "").split("\n\n", 2);
                 @NotNull String[] parts = content[0].replaceAll("\n", " ").split(" ");
 
-                @NotNull HttpResponse httpResponse;
+                @NotNull HttpResponse response;
+                @NotNull StatusLine line;
+                @NotNull HeaderGroup headers = new HeaderGroup();
 
                 try {
                     // Status line
                     @NotNull ProtocolVersion version = getProtocolVersion().deserialize(ByteBuffer.wrap(parts[0].getBytes(StandardCharsets.UTF_8)));
-                    @NotNull StatusLine line = new BasicStatusLine(version, Integer.parseInt(parts[1]), parts[2]);
-                    httpResponse = new BasicHttpResponse(line);
+                    line = new StatusLine(version, Integer.parseInt(parts[1]), parts[2]);
                 } catch (@NotNull Throwable throwable) {
                     throw new HttpException("cannot read response status line", throwable);
                 }
 
                 try {
                     // Headers
-                    @NotNull String headers = content[0].substring(Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length());
-                    @NotNull Matcher matcher = HEADERS_SPLIT_PATTERN.matcher(headers);
+                    @NotNull String headerString = content[0].substring(Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length());
+                    @NotNull Matcher matcher = HEADERS_SPLIT_PATTERN.matcher(headerString);
 
                     while (matcher.find()) {
                         @NotNull String key = matcher.group(1);
                         @NotNull String value = matcher.group(2);
 
-                        httpResponse.addHeader(key, value);
+                        headers.addHeader(new BasicHeader(key, value));
                     }
                 } catch (@NotNull Throwable throwable) {
                     throw new HttpException("cannot read response headers", throwable);
@@ -141,26 +143,30 @@ public final class HttpSerializers {
                 try {
                     // Content
                     @Nullable ContentType contentType = null;
-                    if (httpResponse.containsHeader("Content-Type")) {
-                        contentType = ContentType.parse(httpResponse.getLastHeader("Content-Type").getValue());
+                    if (headers.containsHeader("Content-Type")) {
+                        contentType = ContentType.parse(headers.getLastHeader("Content-Type").getValue());
                     }
 
                     // Body
                     if (content.length > 1) {
                         @NotNull String body = content[1];
-                        httpResponse.setEntity(new StringEntity(body, contentType));
+
+                        response = new BasicClassicHttpResponse(line.getStatusCode(), line.getReasonPhrase());
+                        ((BasicClassicHttpResponse) response).setEntity(new StringEntity(body, contentType));
                     } else {
-                        httpResponse.setEntity(new BasicHttpEntity() {
-                            {
-                                this.contentType = httpResponse.getLastHeader("Content-Type");
-                            }
-                        });
+                        response = new BasicHttpResponse(line.getStatusCode(), line.getReasonPhrase());
                     }
+
+                    for (@NotNull Header header : headers.getHeaders()) {
+                        response.addHeader(header);
+                    }
+
+                    response.setVersion(line.getProtocolVersion());
                 } catch (@NotNull Throwable throwable) {
                     throw new HttpException("cannot read response body", throwable);
                 }
 
-                return httpResponse;
+                return response;
             }
         };
     }
