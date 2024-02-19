@@ -87,6 +87,11 @@ public abstract class HttpProxy extends Proxy {
         return Type.HTTP;
     }
 
+    @Override
+    public @NotNull String toString() {
+        return "HttpProxy " + address;
+    }
+
     // Classes
 
     /**
@@ -119,11 +124,19 @@ public abstract class HttpProxy extends Proxy {
 
                     if (auth.length < 2) {
                         return false;
-                    } else if (auth[0].equalsIgnoreCase("Bearer")) {
+                    } else if (!auth[0].equalsIgnoreCase("Bearer")) {
                         return false;
                     }
 
-                    return predicate.test(Arrays.stream(auth).skip(1).map(string -> string + " ").collect(Collectors.joining()));
+                    int row = 0;
+                    @NotNull StringBuilder merged = new StringBuilder();
+                    for (@NotNull String part : Arrays.stream(auth).skip(1).toArray(String[]::new)) {
+                        if (row > 0) merged.append(" ");
+                        merged.append(part);
+                        row++;
+                    }
+
+                    return predicate.test(merged.toString());
                 } catch (@NotNull Throwable ignore) {
                     return false;
                 } finally {
@@ -156,7 +169,7 @@ public abstract class HttpProxy extends Proxy {
 
                     if (auth.length < 2) {
                         return false;
-                    } else if (auth[0].equalsIgnoreCase("Basic")) {
+                    } else if (!auth[0].equalsIgnoreCase("Basic")) {
                         return false;
                     }
 
