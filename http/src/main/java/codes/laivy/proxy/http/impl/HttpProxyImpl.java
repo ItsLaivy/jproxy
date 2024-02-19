@@ -4,10 +4,8 @@ import codes.laivy.proxy.http.HttpProxy;
 import codes.laivy.proxy.http.utils.HttpSerializers;
 import codes.laivy.proxy.http.utils.HttpUtils;
 import io.netty.util.concurrent.ThreadPerTaskExecutor;
-import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpException;
-import org.apache.hc.core5.http.HttpRequest;
-import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.message.BasicClassicHttpRequest;
 import org.apache.hc.core5.http.message.BasicHttpRequest;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -98,7 +96,14 @@ public class HttpProxyImpl extends HttpProxy {
 
         try {
             @NotNull URI uri = clientRequest.getUri();
-            request = new BasicHttpRequest(clientRequest.getMethod(), uri.getPath());
+
+            if (clientRequest instanceof HttpEntityContainer) {
+                request = new BasicClassicHttpRequest(clientRequest.getMethod(), uri.getPath());
+                ((BasicClassicHttpRequest) request).setEntity(((HttpEntityContainer) clientRequest).getEntity());
+            } else {
+                request = new BasicHttpRequest(clientRequest.getMethod(), uri.getPath());
+            }
+
             request.setVersion(clientRequest.getVersion());
 
             for (@NotNull Header header : clientRequest.getHeaders()) {

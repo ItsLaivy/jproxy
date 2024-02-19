@@ -6,13 +6,12 @@ import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.*;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -36,7 +35,7 @@ public final class HttpSerializers {
                 builder.append("\r\n");
 
                 if (request instanceof HttpEntityContainer) {
-                    builder.append(new Scanner(((HttpEntityContainer) request).getEntity().getContent()).useDelimiter("\\A").next());
+                    builder.append(HttpUtils.read((HttpEntityContainer) request, HttpUtils.getContentType(request)));
                 }
 
                 return ByteBuffer.wrap(builder.toString().getBytes(StandardCharsets.UTF_8));
@@ -47,7 +46,6 @@ public final class HttpSerializers {
 
         @Override
         public @UnknownNullability HttpRequest deserialize(@NotNull ByteBuffer buffer) throws SerializationException {
-            // todo: request with content
             @NotNull String request = new String(buffer.array(), StandardCharsets.UTF_8).replaceAll("\r", "");
             @NotNull String[] content = request.split("\n\n", 2);
             @NotNull String[] parts = content[0].replaceAll("\n", " ").split(" ");
@@ -76,12 +74,6 @@ public final class HttpSerializers {
                 @NotNull URI uri = new URI(parts[1]);
                 @NotNull ProtocolVersion version = getProtocolVersion().deserialize(ByteBuffer.wrap(parts[2].getBytes(StandardCharsets.UTF_8)));
 
-                // Content type
-                @Nullable ContentType contentType = null;
-                if (headers.containsHeader(HttpHeaders.CONTENT_TYPE)) {
-                    contentType = ContentType.parse(headers.getLastHeader(HttpHeaders.CONTENT_TYPE).getValue());
-                }
-
                 // Create request
                 if (content.length > 1) { // Request with body
                     @NotNull String body = content[1];
@@ -89,7 +81,7 @@ public final class HttpSerializers {
                     httpRequest = new BasicClassicHttpRequest(method, uri);
                     httpRequest.setVersion(version);
 
-                    ((BasicClassicHttpRequest) httpRequest).setEntity(new StringEntity(body, contentType));
+                    ((BasicClassicHttpRequest) httpRequest).setEntity(new StringEntity(body, HttpUtils.getContentType(headers)));
                 } else { // Request without body
                     httpRequest = new BasicHttpRequest(method, uri);
                     httpRequest.setVersion(version);
@@ -128,7 +120,7 @@ public final class HttpSerializers {
                 builder.append("\r\n");
 
                 if (response instanceof HttpEntityContainer) {
-                    builder.append(new Scanner(((HttpEntityContainer) response).getEntity().getContent()).useDelimiter("\\A").next());
+                    builder.append(HttpUtils.read((HttpEntityContainer) response, HttpUtils.getContentType(response)));
                 }
             } catch (@NotNull Throwable throwable) {
                 throw new SerializationException("cannot serialize http response content", throwable);
@@ -170,18 +162,12 @@ public final class HttpSerializers {
             }
 
             try {
-                // Content
-                @Nullable ContentType contentType = null;
-                if (headers.containsHeader("Content-Type")) {
-                    contentType = ContentType.parse(headers.getLastHeader("Content-Type").getValue());
-                }
-
                 // Body
                 if (content.length > 1) {
                     @NotNull String body = content[1];
 
                     response = new BasicClassicHttpResponse(line.getStatusCode(), line.getReasonPhrase());
-                    ((BasicClassicHttpResponse) response).setEntity(new StringEntity(body, contentType));
+                    ((BasicClassicHttpResponse) response).setEntity(new StringEntity(body, HttpUtils.getContentType(headers)));
                 } else {
                     response = new BasicHttpResponse(line.getStatusCode(), line.getReasonPhrase());
                 }
