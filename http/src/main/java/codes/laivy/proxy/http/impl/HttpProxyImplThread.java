@@ -6,11 +6,14 @@ import codes.laivy.proxy.http.utils.HttpSerializers;
 import codes.laivy.proxy.http.utils.HttpUtils;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.message.BasicHttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
@@ -152,22 +155,30 @@ class HttpProxyImplThread extends Thread {
 
                             CompletableFuture.runAsync(() -> {
                                 try {
-                                    if (request.getMethod().equalsIgnoreCase("CONNECT")) {
-                                        clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getVersion())));
-                                        System.out.println("Send 4");
-                                    } else {
-                                        @NotNull HttpResponse response = getProxy().request(socket, request);
-                                        clientChannel.write(getHttpResponse().serialize(response));
-                                        System.out.println("Send 5 - '" + new String(getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
-                                    }
-                                } catch (@NotNull SerializationException e) {
                                     try {
-                                        clientChannel.write(HttpSerializers.getHttpResponse().serialize(HttpUtils.clientErrorResponse(request.getVersion(), "bad request")));
+                                        if (request.getMethod().equalsIgnoreCase("CONNECT")) {
+                                            clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getVersion())));
+                                            System.out.println("Send 4");
+                                        } else {
+                                            @NotNull HttpResponse response = getProxy().request(socket, request);
+                                            clientChannel.write(getHttpResponse().serialize(response));
+                                            System.out.println("Send 5 - '" + new String(getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
+                                        }
+                                    } catch (@NotNull Throwable throwable) {
+                                        @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "proxy internal error");
+
+                                        if (throwable instanceof SerializationException) {
+                                            response = new BasicHttpResponse(HttpStatus.SC_BAD_REQUEST, "invalid request format");
+                                        } else if (throwable instanceof ConnectException) {
+                                            response = new BasicHttpResponse(HttpStatus.SC_BAD_REQUEST, throwable.getMessage());
+                                        }
+
+                                        response.setVersion(request.getVersion());
+                                        clientChannel.write(HttpSerializers.getHttpResponse().serialize(response));
                                         clientChannel.close();
-                                    } catch (@NotNull Throwable ignore) {
                                     }
-                                } catch (@NotNull Throwable e) {
-                                    getUncaughtExceptionHandler().uncaughtException(HttpProxyImplThread.this, e);
+                                } catch (@NotNull Throwable throwable) {
+                                    getUncaughtExceptionHandler().uncaughtException(HttpProxyImplThread.this, throwable);
                                 }
                             }, getProxy().getExecutor(socket, request));
                         } catch (@NotNull Throwable throwable) {
