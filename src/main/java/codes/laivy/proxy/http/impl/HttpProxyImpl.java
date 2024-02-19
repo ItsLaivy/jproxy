@@ -124,6 +124,7 @@ public class HttpProxyImpl implements HttpProxy {
         }
 
         // Request
+        // todo: add proxy to socket channel
         try (@NotNull SocketChannel channel = SocketChannel.open()) {
             getRequests().add(channel.socket());
 
@@ -386,10 +387,8 @@ public class HttpProxyImpl implements HttpProxy {
                                         clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getVersion())));
                                         System.out.println("Send 4");
                                     } else try {
-                                        System.out.println("Performing request");
                                         // todo: blocking
                                         @NotNull HttpResponse response = getProxy().request(socket, request);
-                                        System.out.println("Performing response");
                                         clientChannel.write(getHttpResponse().serialize(response));
                                         System.out.println("Send 5 - '" + new String(getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
                                     } catch (@NotNull Throwable throwable) {

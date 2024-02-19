@@ -19,7 +19,7 @@ public final class HttpProxyTest {
         Assert.assertTrue(proxy.start());
 
         // Test with JSoup
-        @NotNull Connection connection = Jsoup.connect("http://laivy.cloud/")
+        @NotNull Connection connection = Jsoup.connect("http://localhost/")
                 .proxy(proxy.getHandle())
 
                 .ignoreContentType(true)

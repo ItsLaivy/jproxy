@@ -28,13 +28,13 @@ public final class HttpSerializers {
         return new Serializer<HttpRequest>() {
             @Override
             public @NotNull ByteBuffer serialize(@UnknownNullability HttpRequest request) throws Exception {
-                @NotNull StringBuilder builder = new StringBuilder(request.getMethod() + " " + request.getUri() + " " + request.getVersion() + "\n");
+                @NotNull StringBuilder builder = new StringBuilder(request.getMethod() + " " + request.getUri() + " " + request.getVersion() + "\r\n");
 
                 for (@NotNull Header header : request.getHeaders()) {
-                    builder.append(header.getName()).append(": ").append(header.getValue()).append("\n");
+                    builder.append(header.getName()).append(": ").append(header.getValue()).append("\r\n");
                 }
 
-                builder.append("\n");
+                builder.append("\r\n");
 
                 return ByteBuffer.wrap(builder.toString().getBytes(StandardCharsets.UTF_8));
             }
@@ -85,18 +85,18 @@ public final class HttpSerializers {
                     throw new NullPointerException("response version cannot be null");
                 }
 
-                @NotNull StringBuilder builder = new StringBuilder(response.getVersion() + " " + response.getCode() + " " + response.getReasonPhrase() + "\n");
+                @NotNull StringBuilder builder = new StringBuilder(response.getVersion() + " " + response.getCode() + " " + response.getReasonPhrase() + "\r\n");
 
                 try {
                     for (Header header : response.getHeaders()) {
-                        builder.append(header.getName()).append(": ").append(header.getValue()).append("\n");
+                        builder.append(header.getName()).append(": ").append(header.getValue()).append("\r\n");
                     }
                 } catch (@NotNull Throwable throwable) {
                     throw new HttpException("cannot serialize http response headers", throwable);
                 }
 
                 try {
-                    builder.append("\n");
+                    builder.append("\r\n");
 
                     if (response instanceof HttpEntityContainer) {
                         builder.append(new Scanner(((HttpEntityContainer) response).getEntity().getContent()).useDelimiter("\\A").next());
