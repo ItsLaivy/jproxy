@@ -1,5 +1,6 @@
 import codes.laivy.proxy.http.HttpProxy;
 import codes.laivy.proxy.http.HttpProxy.Authorization;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
 
+// todo: exclusive http proxy server for tests that verify headers and data
 public final class HttpProxyTest {
 
     private static final @NotNull InetSocketAddress PROXY_ADDRESS = new InetSocketAddress("localhost", 5555);
@@ -31,7 +33,7 @@ public final class HttpProxyTest {
     @Nested
     public final class Insecure {
         @Test
-        public void connect() throws Throwable {
+        public void get() throws Throwable {
             // Start native http proxy
             @NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null);
             Assertions.assertTrue(proxy.start());
@@ -40,10 +42,36 @@ public final class HttpProxyTest {
             @NotNull Connection connection = Jsoup.connect("http://localhost/")
                     .proxy(proxy)
 
+                    .method(Connection.Method.GET)
+
                     .ignoreContentType(true)
                     .ignoreHttpErrors(true);
             @NotNull Connection.Response response = connection.execute();
-            Assertions.assertEquals(HttpStatus.SC_OK, response.statusCode());
+            Assertions.assertEquals(HttpStatus.SC_OK, response.statusCode(), response.statusMessage());
+
+            // End activities and stop
+            Assertions.assertTrue(proxy.stop());
+        }
+        @Test
+        public void post() throws Throwable {
+            // Start native http proxy
+            @NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null);
+            Assertions.assertTrue(proxy.start());
+
+            // Json data
+            @NotNull String data = "{\"test\":\"data\"}";
+            // Test with JSoup
+            @NotNull Connection connection = Jsoup.connect("http://localhost/")
+                    .proxy(proxy)
+
+                    .method(Connection.Method.POST)
+                    .header(HttpHeaders.CONTENT_TYPE, "application/json")
+                    .requestBody(data)
+
+                    .ignoreContentType(true)
+                    .ignoreHttpErrors(true);
+            @NotNull Connection.Response response = connection.execute();
+            Assertions.assertEquals(HttpStatus.SC_OK, response.statusCode(), response.statusMessage());
 
             // End activities and stop
             Assertions.assertTrue(proxy.stop());
