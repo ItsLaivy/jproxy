@@ -44,7 +44,7 @@ public final class HttpUtils {
      * @return an HTTP response object with the 400 status code and a message
      */
     public static @NotNull HttpResponse clientErrorResponse(@NotNull ProtocolVersion version, @NotNull String message) {
-        @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_CLIENT_ERROR, message);
+        @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_BAD_REQUEST, message);
         response.setVersion(version);
 
         return response;

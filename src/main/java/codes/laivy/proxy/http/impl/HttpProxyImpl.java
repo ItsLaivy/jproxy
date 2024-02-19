@@ -1,6 +1,7 @@
 package codes.laivy.proxy.http.impl;
 
 import codes.laivy.proxy.http.HttpProxy;
+import codes.laivy.proxy.http.exception.SerializationException;
 import codes.laivy.proxy.http.utils.HttpSerializers;
 import codes.laivy.proxy.http.utils.HttpUtils;
 import io.netty.util.concurrent.DefaultThreadFactory;
@@ -368,17 +369,20 @@ public class HttpProxyImpl extends HttpProxy {
                                         if (request.getMethod().equalsIgnoreCase("CONNECT")) {
                                             clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getVersion())));
                                             System.out.println("Send 4");
-                                        } else try {
+                                        } else {
                                             // todo: blocking
                                             @NotNull HttpResponse response = getProxy().request(socket, request);
                                             clientChannel.write(getHttpResponse().serialize(response));
                                             System.out.println("Send 5 - '" + new String(getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
-                                        } catch (@NotNull Throwable throwable) {
-                                            clientChannel.write(HttpSerializers.getHttpResponse().serialize(HttpUtils.clientErrorResponse(request.getVersion(), "cannot process request")));
-                                            clientChannel.close();
                                         }
-                                    } catch (@NotNull Exception e) {
-                                        e.printStackTrace();
+                                    } catch (@NotNull SerializationException e) {
+                                        try {
+                                            clientChannel.write(HttpSerializers.getHttpResponse().serialize(HttpUtils.clientErrorResponse(request.getVersion(), "bad request")));
+                                            clientChannel.close();
+                                        } catch (@NotNull Throwable ignore) {
+                                        }
+                                    } catch (@NotNull Throwable e) {
+                                        getUncaughtExceptionHandler().uncaughtException(Thread.this, e);
                                     }
                                 }, getProxy().getExecutor(socket, request));
                             } catch (@NotNull Throwable throwable) {
