@@ -111,9 +111,7 @@ public abstract class HttpProxy extends Proxy {
          * @param predicate a function that checks if the token is valid
          * @return an authentication object that implements the bearer token logic
          */
-        static @NotNull Authorization bearer(@NotNull Predicate<String> predicate) {
-            final @NotNull String headerName = "Proxy-Authorization";
-
+        static @NotNull Authorization bearer(final @NotNull String headerName, @NotNull Predicate<String> predicate) {
             return (socket, request) -> {
                 try {
                     if (!request.containsHeader(headerName)) {
@@ -156,9 +154,7 @@ public abstract class HttpProxy extends Proxy {
          * @param predicate a function that checks if the token is valid
          * @return an authentication object that implements the bearer token logic
          */
-        static @NotNull Authorization basic(@NotNull Predicate<UsernamePasswordCredentials> predicate) {
-            final @NotNull String headerName = "Proxy-Authorization";
-
+        static @NotNull Authorization basic(final @NotNull String headerName, @NotNull Predicate<UsernamePasswordCredentials> predicate) {
             return (socket, request) -> {
                 try {
                     if (!request.containsHeader(headerName)) {

@@ -48,23 +48,24 @@ public final class HttpProxyTest {
 
     @Test
     public void connectInsecureWithAuthorization() throws Throwable {
+        @NotNull String headerName = "Proxy-Authorization";
         @NotNull String validToken = "valid_token_string";
         @NotNull String invalidToken = "invalid_token_string";
         Assert.assertNotEquals(validToken, invalidToken);
 
         // Prepare connection and start http proxy
         @NotNull Connection connection;
-        @NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, Authorization.bearer(string -> string.equals(validToken)));
+        @NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, Authorization.bearer(headerName, string -> string.equals(validToken)));
         Assert.assertTrue(proxy.start());
 
         // Test with JSoup without authorization
         connection = Jsoup.connect("http://localhost/").proxy(proxy).ignoreContentType(true).ignoreHttpErrors(true);
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, connection.execute().statusCode());
         // Test with JSoup with invalid authorization
-        connection = Jsoup.connect("http://localhost/").proxy(proxy).header("Proxy-Authorization", "Bearer " + invalidToken).ignoreContentType(true).ignoreHttpErrors(true);
+        connection = Jsoup.connect("http://localhost/").proxy(proxy).header(headerName, "Bearer " + invalidToken).ignoreContentType(true).ignoreHttpErrors(true);
         Assert.assertEquals(HttpStatus.SC_UNAUTHORIZED, connection.execute().statusCode());
         // Test with JSoup with valid authorization
-        connection = Jsoup.connect("http://localhost/").proxy(proxy).header("Proxy-Authorization", "Bearer " + validToken).ignoreContentType(true).ignoreHttpErrors(true);
+        connection = Jsoup.connect("http://localhost/").proxy(proxy).header(headerName, "Bearer " + validToken).ignoreContentType(true).ignoreHttpErrors(true);
         Assert.assertEquals(HttpStatus.SC_OK, connection.execute().statusCode());
 
         // End activities and stop
