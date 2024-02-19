@@ -20,6 +20,9 @@ public abstract class HttpProxy extends Proxy {
 
     // Initializers
 
+    public static void main(String[] args) {
+    }
+
     public static @NotNull HttpProxy create(@NotNull InetSocketAddress address, @Nullable Authentication authentication) throws IOException {
         return new HttpProxyImpl(address, authentication);
     }

@@ -1,7 +1,7 @@
 package codes.laivy.proxy.http.impl;
 
 import codes.laivy.proxy.http.HttpProxy;
-import codes.laivy.proxy.http.exception.SerializationException;
+import codes.laivy.proxy.exception.SerializationException;
 import codes.laivy.proxy.http.utils.HttpSerializers;
 import codes.laivy.proxy.http.utils.HttpUtils;
 import org.apache.hc.core5.http.HttpRequest;

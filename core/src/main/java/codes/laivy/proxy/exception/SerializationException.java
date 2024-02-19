@@ -1,6 +1,6 @@
-package codes.laivy.proxy.http.exception;
+package codes.laivy.proxy.exception;
 
-import codes.laivy.proxy.http.utils.HttpSerializers.Serializer;
+import codes.laivy.proxy.utils.Serializer;
 import org.jetbrains.annotations.Nullable;
 
 /**

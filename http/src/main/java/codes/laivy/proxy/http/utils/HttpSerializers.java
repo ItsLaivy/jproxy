@@ -1,6 +1,7 @@
 package codes.laivy.proxy.http.utils;
 
-import codes.laivy.proxy.http.exception.SerializationException;
+import codes.laivy.proxy.exception.SerializationException;
+import codes.laivy.proxy.utils.Serializer;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.*;
@@ -200,12 +201,5 @@ public final class HttpSerializers {
     }
 
     // Classes
-
-    public interface Serializer<T> {
-
-        @NotNull ByteBuffer serialize(@UnknownNullability T object) throws SerializationException;
-        @UnknownNullability T deserialize(@NotNull ByteBuffer buffer) throws SerializationException;
-
-    }
 
 }
