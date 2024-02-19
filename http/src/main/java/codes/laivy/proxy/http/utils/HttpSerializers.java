@@ -12,8 +12,7 @@ import org.jetbrains.annotations.UnknownNullability;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Scanner;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -36,6 +35,10 @@ public final class HttpSerializers {
 
                 builder.append("\r\n");
 
+                if (request instanceof HttpEntityContainer) {
+                    builder.append(new Scanner(((HttpEntityContainer) request).getEntity().getContent()).useDelimiter("\\A").next());
+                }
+
                 return ByteBuffer.wrap(builder.toString().getBytes(StandardCharsets.UTF_8));
             } catch (@NotNull Throwable throwable) {
                 throw new SerializationException(throwable);
@@ -45,9 +48,27 @@ public final class HttpSerializers {
         @Override
         public @UnknownNullability HttpRequest deserialize(@NotNull ByteBuffer buffer) throws SerializationException {
             // todo: request with content
-            @NotNull String request = new String(buffer.array(), StandardCharsets.UTF_8).replaceAll("\r", "").replaceAll("\n", " ");
-            @NotNull String[] parts = request.split(" ");
+            @NotNull String request = new String(buffer.array(), StandardCharsets.UTF_8).replaceAll("\r", "");
+            @NotNull String[] content = request.split("\n\n", 2);
+            @NotNull String[] parts = content[0].replaceAll("\n", " ").split(" ");
+
+            @NotNull HeaderGroup headers = new HeaderGroup();
             @NotNull HttpRequest httpRequest;
+
+            try {
+                // Headers
+                @NotNull String headerString = content[0].substring(Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length());
+                @NotNull Matcher matcher = HEADERS_SPLIT_PATTERN.matcher(headerString);
+
+                while (matcher.find()) {
+                    @NotNull String key = matcher.group(1);
+                    @NotNull String value = matcher.group(2);
+
+                    headers.addHeader(new BasicHeader(key, value));
+                }
+            } catch (@NotNull Throwable throwable) {
+                throw new SerializationException("cannot read request headers", throwable);
+            }
 
             try {
                 // Method, uri and protocol version
@@ -55,26 +76,31 @@ public final class HttpSerializers {
                 @NotNull URI uri = new URI(parts[1]);
                 @NotNull ProtocolVersion version = getProtocolVersion().deserialize(ByteBuffer.wrap(parts[2].getBytes(StandardCharsets.UTF_8)));
 
+                // Content type
+                @Nullable ContentType contentType = null;
+                if (headers.containsHeader(HttpHeaders.CONTENT_TYPE)) {
+                    contentType = ContentType.parse(headers.getLastHeader(HttpHeaders.CONTENT_TYPE).getValue());
+                }
+
                 // Create request
-                httpRequest = new BasicHttpRequest(method, uri);
-                httpRequest.setVersion(version);
-            } catch (@NotNull Throwable throwable) {
-                throw new SerializationException("cannot read request basics", throwable);
-            }
+                if (content.length > 1) { // Request with body
+                    @NotNull String body = content[1];
 
-            try {
-                // Headers
-                @NotNull String headers = request.substring(Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length());
-                @NotNull Matcher matcher = HEADERS_SPLIT_PATTERN.matcher(headers);
+                    httpRequest = new BasicClassicHttpRequest(method, uri);
+                    httpRequest.setVersion(version);
 
-                while (matcher.find()) {
-                    @NotNull String key = matcher.group(1);
-                    @NotNull String value = matcher.group(2);
+                    ((BasicClassicHttpRequest) httpRequest).setEntity(new StringEntity(body, contentType));
+                } else { // Request without body
+                    httpRequest = new BasicHttpRequest(method, uri);
+                    httpRequest.setVersion(version);
+                }
 
-                    httpRequest.setHeader(new BasicHeader(key, value));
+                // Add headers
+                for (Header header : headers.getHeaders()) {
+                    httpRequest.addHeader(header);
                 }
             } catch (@NotNull Throwable throwable) {
-                throw new SerializationException("cannot read request headers", throwable);
+                throw new SerializationException("cannot read request basics", throwable);
             }
 
             return httpRequest;

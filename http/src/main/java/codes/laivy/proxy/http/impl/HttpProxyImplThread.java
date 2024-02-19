@@ -63,7 +63,6 @@ class HttpProxyImplThread extends Thread {
             try {
                 @Range(from = 0, to = Integer.MAX_VALUE)
                 int readyChannels = selector.select();
-
                 if (readyChannels == 0) continue;
 
                 selectedKeys = selector.selectedKeys();
@@ -157,7 +156,6 @@ class HttpProxyImplThread extends Thread {
                                         clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getVersion())));
                                         System.out.println("Send 4");
                                     } else {
-                                        // todo: blocking
                                         @NotNull HttpResponse response = getProxy().request(socket, request);
                                         clientChannel.write(getHttpResponse().serialize(response));
                                         System.out.println("Send 5 - '" + new String(getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
