@@ -1,6 +1,8 @@
 package codes.laivy.proxy.http.utils;
 
 import codes.laivy.proxy.exception.SerializationException;
+import codes.laivy.proxy.http.core.SecureHttpRequest;
+import codes.laivy.proxy.http.core.SecureHttpResponse;
 import codes.laivy.proxy.utils.Serializer;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
@@ -27,6 +29,14 @@ public final class HttpSerializers {
         @Override
         public @NotNull ByteBuffer serialize(@UnknownNullability HttpRequest request) throws SerializationException {
             try {
+                if (request instanceof SecureHttpRequest) {
+                    return ByteBuffer.wrap(((SecureHttpRequest) request).getData());
+                }
+            } catch (@NotNull Throwable throwable) {
+                throw new SerializationException("cannot serialize secure http request", throwable);
+            }
+
+            try {
                 @NotNull StringBuilder builder = new StringBuilder(request.getMethod() + " " + request.getUri() + " " + request.getVersion() + "\r\n");
 
                 for (@NotNull Header header : request.getHeaders()) {
@@ -48,7 +58,14 @@ public final class HttpSerializers {
 
         @Override
         public @UnknownNullability HttpRequest deserialize(@NotNull ByteBuffer buffer) throws SerializationException {
-            @NotNull String request = new String(buffer.array(), StandardCharsets.UTF_8).replaceAll("\r", "");
+            byte[] bytes = buffer.array();
+            buffer.clear();
+
+            if (HttpUtils.isSecureData(bytes)) {
+                return new SecureHttpRequest(bytes);
+            }
+
+            @NotNull String request = new String(bytes, StandardCharsets.UTF_8).replaceAll("\r", "");
             @NotNull String[] content = request.split("\n\n", 2);
             @NotNull String[] parts = content[0].replaceAll("\n", " ").split(" ");
 
@@ -104,11 +121,15 @@ public final class HttpSerializers {
     private static final @NotNull Serializer<HttpResponse> response = new Serializer<HttpResponse>() {
         @Override
         public @NotNull ByteBuffer serialize(@UnknownNullability HttpResponse response) throws SerializationException {
-            if (response.getVersion() == null) {
-                throw new NullPointerException("response version cannot be null");
+            try {
+                if (response instanceof SecureHttpResponse) {
+                    return ByteBuffer.wrap(((SecureHttpResponse) response).getData());
+                }
+            } catch (@NotNull Throwable throwable) {
+                throw new SerializationException("cannot serialize secure http response", throwable);
             }
 
-            @NotNull StringBuilder builder = new StringBuilder(response.getVersion() + " " + response.getCode() + " " + response.getReasonPhrase() + "\r\n");
+            @NotNull StringBuilder builder = new StringBuilder((response.getVersion() != null ? response.getVersion() : HttpVersion.DEFAULT.format()) + " " + response.getCode() + " " + response.getReasonPhrase() + "\r\n");
 
             try {
                 for (Header header : response.getHeaders()) {
@@ -134,7 +155,14 @@ public final class HttpSerializers {
 
         @Override
         public @UnknownNullability HttpResponse deserialize(@NotNull ByteBuffer buffer) throws SerializationException {
-            @NotNull String[] content = new String(buffer.array(), StandardCharsets.UTF_8).replaceAll("\r", "").split("\n\n", 2);
+            byte[] bytes = buffer.array();
+            buffer.clear();
+
+            if (HttpUtils.isSecureData(bytes)) {
+                return new SecureHttpResponse(bytes);
+            }
+
+            @NotNull String[] content = new String(bytes, StandardCharsets.UTF_8).replaceAll("\r", "").split("\n\n", 2);
             @NotNull String[] parts = content[0].replaceAll("\n", " ").split(" ");
 
             @NotNull HttpResponse response;
