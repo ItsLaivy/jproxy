@@ -27,7 +27,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static codes.laivy.proxy.http.utils.HttpSerializers.getHttpResponse;
 
-// todo: stop all threads when http proxy stop
 public class HttpProxyImpl extends HttpProxy {
 
     // Default executor used on #getExecutor

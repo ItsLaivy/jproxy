@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.ServerSocket;
@@ -147,28 +148,28 @@ class HttpProxyImplThread extends Thread {
                             try {
                                 request = HttpSerializers.getHttpRequest().deserialize(buffer);
                                 System.out.println("Read: '" + new String(HttpSerializers.getHttpRequest().serialize(request).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
+
+                                @Nullable HttpProxy.Authorization authorization = getProxy().getAuthentication();
+                                if (authorization != null && Method.normalizedValueOf(request.getMethod()) != Method.CONNECT) {
+                                    @Nullable HttpResponse authResponse = null;
+
+                                    try {
+                                        if (!authorization.validate(socket, request)) {
+                                            authResponse = HttpUtils.unauthorizedResponse(request.getVersion());
+                                        }
+                                    } catch (@NotNull Throwable throwable) {
+                                        getUncaughtExceptionHandler().uncaughtException(this, throwable);
+                                        authResponse = HttpUtils.unauthorizedResponse(request.getVersion());
+                                    }
+
+                                    if (authResponse != null) {
+                                        clientChannel.write(getHttpResponse().serialize(authResponse));
+                                        continue;
+                                    }
+                                }
                             } catch (@NotNull Throwable throwable) {
                                 client.close();
                                 continue;
-                            }
-
-                            @Nullable HttpProxy.Authorization authorization = getProxy().getAuthentication();
-                            if (authorization != null && Method.normalizedValueOf(request.getMethod()) != Method.CONNECT) {
-                                @Nullable HttpResponse authResponse = null;
-
-                                try {
-                                    if (!authorization.validate(socket, request)) {
-                                        authResponse = HttpUtils.unauthorizedResponse(request.getVersion());
-                                    }
-                                } catch (@NotNull Throwable throwable) {
-                                    getUncaughtExceptionHandler().uncaughtException(this, throwable);
-                                    authResponse = HttpUtils.unauthorizedResponse(request.getVersion());
-                                }
-
-                                if (authResponse != null) {
-                                    clientChannel.write(getHttpResponse().serialize(authResponse));
-                                    continue;
-                                }
                             }
 
                             CompletableFuture.runAsync(() -> {
