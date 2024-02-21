@@ -1,6 +1,7 @@
 package codes.laivy.proxy.http.impl;
 
 import codes.laivy.proxy.http.HttpProxy;
+import codes.laivy.proxy.http.connection.HttpProxyClient;
 import codes.laivy.proxy.http.utils.HttpSerializers;
 import codes.laivy.proxy.http.utils.HttpUtils;
 import io.netty.util.concurrent.ThreadPerTaskExecutor;
@@ -19,20 +20,17 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Collection;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static codes.laivy.proxy.http.utils.HttpSerializers.getHttpResponse;
 
+// todo: stop all threads when http proxy stop
 public class HttpProxyImpl extends HttpProxy {
 
     // Default executor used on #getExecutor
-
-    // stop all threads when http proxy stop
     private final @NotNull ThreadPerTaskExecutor executor = new ThreadPerTaskExecutor(new ThreadFactory() {
 
         private final @NotNull AtomicInteger count = new AtomicInteger(0);
@@ -41,7 +39,7 @@ public class HttpProxyImpl extends HttpProxy {
         public Thread newThread(@NotNull Runnable r) {
             @NotNull Thread thread = new Thread(r);
             thread.setDaemon(false);
-            thread.setName("Proxy '" + getAddress() + "' request #");
+            thread.setName("Proxy '" + address() + "' request #");
 
             return thread;
         }
@@ -49,12 +47,11 @@ public class HttpProxyImpl extends HttpProxy {
 
     // Object
 
+    private final @NotNull Collection<HttpProxyClient> clients = new HttpProxyClients();
+
     protected volatile @Nullable ServerSocket server;
     protected @Nullable Selector selector;
     protected @Nullable Thread thread;
-
-    // Requests
-    protected @NotNull Requests requests = Requests.create();
 
     // Constructor
 
@@ -64,6 +61,11 @@ public class HttpProxyImpl extends HttpProxy {
 
     // Getters
 
+    @Override
+    public @NotNull Collection<HttpProxyClient> getClients() {
+        return clients;
+    }
+
     @ApiStatus.OverrideOnly
     public @NotNull Executor getExecutor(@NotNull Socket socket, @NotNull HttpRequest request) {
         return executor;
@@ -71,9 +73,6 @@ public class HttpProxyImpl extends HttpProxy {
 
     public final @Nullable Thread getThread() {
         return thread;
-    }
-    public final @NotNull Requests getRequests() {
-        return requests;
     }
 
     /**
@@ -91,7 +90,7 @@ public class HttpProxyImpl extends HttpProxy {
     }
 
     @Override
-    public @NotNull HttpResponse request(@NotNull Socket socket, @NotNull HttpRequest clientRequest) throws IOException, HttpException {
+    public @NotNull HttpResponse request(@NotNull HttpProxyClient client, @NotNull HttpRequest clientRequest) throws IOException, HttpException {
         // Create clone request
         @NotNull HttpRequest request;
 
@@ -111,7 +110,7 @@ public class HttpProxyImpl extends HttpProxy {
                 request.addHeader(header);
             }
 
-            request.setHeader("Host", HttpUtils.getAddress(null, uri.toString()).getHostName());
+            request.setHeader("Host", HttpUtils.getAddress(client.getAddress(), uri.toString()).getHostName());
             if (!request.containsHeader("User-Agent")) {
                 request.addHeader("User-Agent", "java-" + System.getProperty("java.version"));
             } if (!request.containsHeader("Connection")) {
@@ -123,11 +122,8 @@ public class HttpProxyImpl extends HttpProxy {
 
         // Request
         try (@NotNull SocketChannel channel = SocketChannel.open()) {
-            getRequests().add(channel.socket());
-
-            // todo: previous address
-            @NotNull InetSocketAddress address = HttpUtils.getAddress(null, clientRequest.getUri().toString());
-            channel.bind(new InetSocketAddress(getAddress().getAddress(), 0));
+            @NotNull InetSocketAddress address = HttpUtils.getAddress(client.getAddress(), clientRequest.getUri().toString());
+            channel.bind(new InetSocketAddress(address().getAddress(), 0));
             channel.connect(address);
 
             try {
@@ -178,7 +174,7 @@ public class HttpProxyImpl extends HttpProxy {
         channel.configureBlocking(false);
         this.server = channel.socket();
 
-        channel.socket().bind(getAddress());
+        channel.socket().bind(address());
         channel.register(getSelector(), SelectionKey.OP_ACCEPT);
 
         this.thread = new HttpProxyImplThread(this);
@@ -205,45 +201,6 @@ public class HttpProxyImpl extends HttpProxy {
         this.server = null;
 
         return true;
-    }
-
-    // Classes
-
-    public interface Requests extends Iterable<Socket> {
-
-        static @NotNull Requests create() {
-            return new Requests() {
-
-                private final @NotNull Set<Socket> requests = ConcurrentHashMap.newKeySet();
-
-                @Override
-                public boolean add(@NotNull Socket socket) {
-                    return requests.add(socket);
-                }
-
-                @Override
-                public boolean remove(@NotNull Socket socket) {
-                    return requests.remove(socket);
-                }
-
-                @Override
-                public void clear() {
-                    requests.clear();
-                }
-
-                @Override
-                public @NotNull Iterator<Socket> iterator() {
-                    return requests.iterator();
-                }
-            };
-        }
-
-        boolean add(@NotNull Socket socket);
-
-        boolean remove(@NotNull Socket socket);
-
-        void clear();
-
     }
 
 }

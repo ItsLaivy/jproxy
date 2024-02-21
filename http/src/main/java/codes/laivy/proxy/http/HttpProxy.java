@@ -1,6 +1,7 @@
 package codes.laivy.proxy.http;
 
 import codes.laivy.proxy.ProxyServer;
+import codes.laivy.proxy.http.connection.HttpProxyClient;
 import codes.laivy.proxy.http.impl.HttpProxyImpl;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.core5.http.HttpException;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.net.*;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -39,6 +41,9 @@ public abstract class HttpProxy extends ProxyServer implements AutoCloseable {
 
     // Getters
 
+    @Override
+    public abstract @NotNull Collection<HttpProxyClient> getClients();
+
     public abstract @Nullable ServerSocket getServer();
 
     /**
@@ -57,12 +62,13 @@ public abstract class HttpProxy extends ProxyServer implements AutoCloseable {
      * @author Daniel Richard (Laivy)
      *
      * @param request the HTTP request to be sent
+     * @param client the HTTP client trying to realize the request
      * @return the HTTP response received from the server
      * @throws IOException if there is an error in the socket connection or the input/output streams
      * @throws HttpException if there is an error in the request or response serialization or parsing
      */
     @Blocking
-    public abstract @NotNull HttpResponse request(@NotNull Socket socket, @NotNull HttpRequest request) throws IOException, HttpException;
+    public abstract @NotNull HttpResponse request(@NotNull HttpProxyClient client, @NotNull HttpRequest request) throws IOException, HttpException;
 
     // Loaders
 
