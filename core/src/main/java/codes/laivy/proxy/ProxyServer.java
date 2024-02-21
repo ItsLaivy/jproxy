@@ -23,7 +23,7 @@ public abstract class ProxyServer extends Proxy {
     // Getters
 
     @Override
-    public final @NotNull SocketAddress address() {
+    public final @NotNull InetSocketAddress address() {
         return this.address;
     }
     @Override
@@ -33,6 +33,6 @@ public abstract class ProxyServer extends Proxy {
 
     // Modules
 
-    public abstract @NotNull Collection<ProxyClient> getClients();
+    public abstract @NotNull Collection<? extends ProxyClient> getClients();
 
 }

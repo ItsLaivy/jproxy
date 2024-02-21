@@ -15,5 +15,4 @@ public interface HttpProxyClient extends ProxyClient {
     boolean isSecure();
     void setSecure(boolean secure);
 
-    boolean isAnonymous();
 }
