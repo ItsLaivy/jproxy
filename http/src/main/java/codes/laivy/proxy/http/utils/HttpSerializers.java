@@ -38,11 +38,7 @@ public final class HttpSerializers {
 
             try {
                 @NotNull StringBuilder builder = new StringBuilder(request.getMethod() + " " + request.getUri() + " " + request.getVersion() + "\r\n");
-
-                for (@NotNull Header header : request.getHeaders()) {
-                    builder.append(header.getName()).append(": ").append(header.getValue()).append("\r\n");
-                }
-
+                builder.append(new String(getHeaders().serialize(request).array(), StandardCharsets.UTF_8));
                 builder.append("\r\n");
 
                 if (request instanceof HttpEntityContainer) {
@@ -55,37 +51,22 @@ public final class HttpSerializers {
                 throw new SerializationException(throwable);
             }
         }
-
         @Override
         public @UnknownNullability HttpRequest deserialize(@NotNull ByteBuffer buffer) throws SerializationException {
             byte[] bytes = buffer.array();
             buffer.clear();
 
+            // todo: 400: Bad Request - if the request doesn't have the "Host" parameter in HTTP/1.1 requests. And multiples connections with different hostings
+
             if (HttpUtils.isSecureData(bytes)) {
                 return new SecureHttpRequest(bytes);
             }
 
-            @NotNull String request = new String(bytes, StandardCharsets.UTF_8).replaceAll("\r", "");
-            @NotNull String[] content = request.split("\n\n", 2);
+            @NotNull String[] content = new String(bytes, StandardCharsets.UTF_8).replaceAll("\r", "").split("\n\n", 2);
             @NotNull String[] parts = content[0].replaceAll("\n", " ").split(" ");
+            @NotNull MessageHeaders headers = getHeaders().deserialize(ByteBuffer.wrap(content[0].substring(Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length()).getBytes()));
 
-            @NotNull HeaderGroup headers = new HeaderGroup();
             @NotNull HttpRequest httpRequest;
-
-            try {
-                // Headers
-                @NotNull String headerString = content[0].substring(Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length());
-                @NotNull Matcher matcher = HEADERS_SPLIT_PATTERN.matcher(headerString);
-
-                while (matcher.find()) {
-                    @NotNull String key = matcher.group(1);
-                    @NotNull String value = matcher.group(2);
-
-                    headers.addHeader(new BasicHeader(key, value));
-                }
-            } catch (@NotNull Throwable throwable) {
-                throw new SerializationException("cannot read request headers", throwable);
-            }
 
             try {
                 // Method, uri and protocol version
@@ -130,18 +111,10 @@ public final class HttpSerializers {
             }
 
             @NotNull StringBuilder builder = new StringBuilder((response.getVersion() != null ? response.getVersion() : HttpVersion.DEFAULT.format()) + " " + response.getCode() + " " + response.getReasonPhrase() + "\r\n");
+            builder.append(new String(getHeaders().serialize(response).array(), StandardCharsets.UTF_8));
+            builder.append("\r\n");
 
             try {
-                for (Header header : response.getHeaders()) {
-                    builder.append(header.getName()).append(": ").append(header.getValue()).append("\r\n");
-                }
-            } catch (@NotNull Throwable throwable) {
-                throw new SerializationException("cannot serialize http response headers", throwable);
-            }
-
-            try {
-                builder.append("\r\n");
-
                 if (response instanceof HttpEntityContainer) {
                     @Nullable ContentType contentType = HttpUtils.getContentType(response);
                     builder.append(HttpUtils.read((HttpEntityContainer) response, contentType != null ? contentType.getCharset() : null));
@@ -152,7 +125,6 @@ public final class HttpSerializers {
 
             return ByteBuffer.wrap(builder.toString().getBytes(StandardCharsets.UTF_8));
         }
-
         @Override
         public @UnknownNullability HttpResponse deserialize(@NotNull ByteBuffer buffer) throws SerializationException {
             byte[] bytes = buffer.array();
@@ -164,10 +136,10 @@ public final class HttpSerializers {
 
             @NotNull String[] content = new String(bytes, StandardCharsets.UTF_8).replaceAll("\r", "").split("\n\n", 2);
             @NotNull String[] parts = content[0].replaceAll("\n", " ").split(" ");
+            @NotNull MessageHeaders headers = getHeaders().deserialize(ByteBuffer.wrap(content[0].substring(Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length()).getBytes()));
 
             @NotNull HttpResponse response;
             @NotNull StatusLine line;
-            @NotNull HeaderGroup headers = new HeaderGroup();
 
             try {
                 // Status line
@@ -175,21 +147,6 @@ public final class HttpSerializers {
                 line = new StatusLine(version, Integer.parseInt(parts[1]), parts[2]);
             } catch (@NotNull Throwable throwable) {
                 throw new SerializationException("cannot read response status line", throwable);
-            }
-
-            try {
-                // Headers
-                @NotNull String headerString = content[0].substring(Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length());
-                @NotNull Matcher matcher = HEADERS_SPLIT_PATTERN.matcher(headerString);
-
-                while (matcher.find()) {
-                    @NotNull String key = matcher.group(1);
-                    @NotNull String value = matcher.group(2);
-
-                    headers.addHeader(new BasicHeader(key, value));
-                }
-            } catch (@NotNull Throwable throwable) {
-                throw new SerializationException("cannot read response headers", throwable);
             }
 
             try {
@@ -222,7 +179,6 @@ public final class HttpSerializers {
             byte[] result = object.toString().getBytes(StandardCharsets.UTF_8);
             return ByteBuffer.wrap(result);
         }
-
         @Override
         public @UnknownNullability ProtocolVersion deserialize(@NotNull ByteBuffer buffer) {
             try {
@@ -235,6 +191,35 @@ public final class HttpSerializers {
             } catch (@NotNull Throwable throwable) {
                 throw new IllegalArgumentException("cannot parse protocol version", throwable);
             }
+        }
+    };
+
+    private static final @NotNull Serializer<MessageHeaders> headers = new Serializer<MessageHeaders>() {
+        @Override
+        public @NotNull ByteBuffer serialize(@UnknownNullability MessageHeaders object) {
+            @NotNull StringBuilder builder = new StringBuilder();
+
+            // todo: test multiples headers with the same name
+            for (@NotNull Header header : object.getHeaders()) {
+                builder.append(header.getName()).append(": ").append(header.getValue()).append("\r\n");
+            }
+
+            return ByteBuffer.wrap(builder.toString().getBytes(StandardCharsets.UTF_8));
+        }
+        @Override
+        public @UnknownNullability MessageHeaders deserialize(@NotNull ByteBuffer buffer) {
+            @NotNull String string = new String(buffer.array(), StandardCharsets.UTF_8).replaceAll("\r", "").replaceAll("\n", " ");
+            @NotNull Pattern pattern = Pattern.compile("([^:\\s]+):\\s*(.+?)(?=(\\s+[^:\\s]+:|$))");
+            @NotNull Matcher matcher = pattern.matcher(string);
+
+            @NotNull HeaderGroup group = new HeaderGroup();
+
+            while (matcher.find()) {
+                @NotNull Header header = new BasicHeader(matcher.group(1), matcher.group(2), HttpUtils.isHeaderSensitive(matcher.group(1)));
+                group.addHeader(header);
+            }
+
+            return group;
         }
     };
 
@@ -252,6 +237,9 @@ public final class HttpSerializers {
     }
     public static @NotNull Serializer<ProtocolVersion> getProtocolVersion() {
         return version;
+    }
+    public static @NotNull Serializer<MessageHeaders> getHeaders() {
+        return headers;
     }
 
     // Classes
