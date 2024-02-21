@@ -1,5 +1,5 @@
 import codes.laivy.proxy.http.HttpProxy;
-import codes.laivy.proxy.http.HttpProxy.Authorization;
+import codes.laivy.proxy.http.core.HttpAuthorization;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.net.InetSocketAddress;
 
 // todo: exclusive http proxy server for tests that verify headers and data
+// todo: tests with JSoup#newSession
 public final class HttpProxyTest {
 
     private static final @NotNull InetSocketAddress PROXY_ADDRESS = new InetSocketAddress("localhost", 5555);
@@ -170,19 +171,19 @@ public final class HttpProxyTest {
 
         @Test
         public void connectWithAuthorization() throws Throwable {
-            @NotNull String headerName = "Proxy-Authorization";
+            @NotNull String headerName = HttpHeaders.PROXY_AUTHORIZATION;
             @NotNull String validToken = "valid_token_string";
             @NotNull String invalidToken = "invalid_token_string";
             Assertions.assertNotEquals(validToken, invalidToken);
 
             // Prepare connection and start http proxy
             @NotNull Connection connection;
-            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, Authorization.bearer(HttpHeaders.PROXY_AUTHORIZATION, (string) -> string.equals(validToken)))) {
+            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, HttpAuthorization.bearer(headerName, (string) -> string.equals(validToken)))) {
                 Assertions.assertTrue(proxy.start());
 
                 // Test with JSoup without authorization
                 connection = Jsoup.connect("http://localhost/").proxy(proxy).ignoreContentType(true).ignoreHttpErrors(true);
-                Assertions.assertEquals(HttpStatus.SC_UNAUTHORIZED, connection.execute().statusCode());
+                Assertions.assertEquals(HttpStatus.SC_PROXY_AUTHENTICATION_REQUIRED, connection.execute().statusCode());
                 // Test with JSoup with invalid authorization
                 connection = Jsoup.connect("http://localhost/").proxy(proxy).header(headerName, "Bearer " + invalidToken).ignoreContentType(true).ignoreHttpErrors(true);
                 Assertions.assertEquals(HttpStatus.SC_UNAUTHORIZED, connection.execute().statusCode());
