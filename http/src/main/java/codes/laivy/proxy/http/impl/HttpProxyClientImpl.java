@@ -5,6 +5,7 @@ import codes.laivy.proxy.http.connection.HttpProxyClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
@@ -42,6 +43,7 @@ public final class HttpProxyClientImpl implements HttpProxyClient {
     public void setDestination(@NotNull InetSocketAddress destination) {
         this.destination = destination;
     }
+
     // Proxy
 
     @Override
@@ -62,6 +64,14 @@ public final class HttpProxyClientImpl implements HttpProxyClient {
     @Override
     public void setSecure(boolean secure) {
         this.secure = secure;
+    }
+
+    // Loaders
+
+    @Override
+    public void close() throws IOException {
+        getProxy().getClients().remove(this);
+        getSocket().close();
     }
 
     // Natives
