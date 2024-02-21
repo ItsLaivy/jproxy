@@ -1,13 +1,14 @@
 package codes.laivy.proxy.http.impl;
 
-import codes.laivy.proxy.http.HttpProxy;
 import codes.laivy.proxy.exception.SerializationException;
+import codes.laivy.proxy.http.HttpProxy;
 import codes.laivy.proxy.http.connection.HttpProxyClient;
 import codes.laivy.proxy.http.utils.HttpSerializers;
 import codes.laivy.proxy.http.utils.HttpUtils;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.http.message.BasicHttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -21,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -93,6 +95,7 @@ class HttpProxyImplThread extends Thread {
                             clientSocket.register(selector, SelectionKey.OP_READ);
                             // Create the proxy client
                             @NotNull HttpProxyClientImpl client = new HttpProxyClientImpl(getProxy(), clientSocket);
+                            getProxy().getClients().add(client);
                         } catch (@NotNull Throwable throwable) {
                             getUncaughtExceptionHandler().uncaughtException(this, throwable);
 
@@ -105,6 +108,14 @@ class HttpProxyImplThread extends Thread {
                         @NotNull SocketChannel clientChannel = (SocketChannel) key.channel();
 
                         try {
+                            @NotNull Optional<HttpProxyClient> optional = getProxy().getClients().stream().filter(socket -> socket.getSocket().equals(clientChannel.socket())).findFirst();
+
+                            if (!optional.isPresent()) {
+                                clientChannel.close();
+                                return;
+                            }
+
+                            @NotNull HttpProxyClient client = optional.get();
                             @NotNull Socket socket = clientChannel.socket();
                             @NotNull ByteBuffer buffer;
 
@@ -117,7 +128,7 @@ class HttpProxyImplThread extends Thread {
                                 int read = clientChannel.read(readBuffer);
 
                                 if (read == -1) {
-                                    clientChannel.close();
+                                    client.close();
                                     continue;
                                 } else while (read > 0) {
                                     readBuffer.flip();
@@ -129,7 +140,7 @@ class HttpProxyImplThread extends Thread {
 
                                 buffer = ByteBuffer.wrap(stringBuilder.toString().getBytes(StandardCharsets.UTF_8));
                             } catch (@NotNull IOException ignore) {
-                                clientChannel.close();
+                                client.close();
                                 continue;
                             }
 
@@ -137,12 +148,12 @@ class HttpProxyImplThread extends Thread {
                                 request = HttpSerializers.getHttpRequest().deserialize(buffer);
                                 System.out.println("Read: '" + new String(HttpSerializers.getHttpRequest().serialize(request).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
                             } catch (@NotNull Throwable throwable) {
-                                clientChannel.close();
+                                client.close();
                                 continue;
                             }
 
                             @Nullable HttpProxy.Authorization authorization = getProxy().getAuthentication();
-                            if (authorization != null && !request.getMethod().equalsIgnoreCase("CONNECT")) {
+                            if (authorization != null && Method.normalizedValueOf(request.getMethod()) != Method.CONNECT) {
                                 @Nullable HttpResponse authResponse = null;
 
                                 try {
@@ -167,7 +178,7 @@ class HttpProxyImplThread extends Thread {
                                             clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getVersion())));
                                             System.out.println("Send 4");
                                         } else {
-                                            @NotNull HttpResponse response = getProxy().request(socket, request);
+                                            @NotNull HttpResponse response = getProxy().request(client, request);
                                             clientChannel.write(getHttpResponse().serialize(response));
                                             System.out.println("Send 5 - '" + new String(getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
                                         }
@@ -182,7 +193,7 @@ class HttpProxyImplThread extends Thread {
 
                                         response.setVersion(request.getVersion());
                                         clientChannel.write(HttpSerializers.getHttpResponse().serialize(response));
-                                        clientChannel.close();
+                                        client.close();
                                     }
                                 } catch (@NotNull Throwable throwable) {
                                     getUncaughtExceptionHandler().uncaughtException(HttpProxyImplThread.this, throwable);
