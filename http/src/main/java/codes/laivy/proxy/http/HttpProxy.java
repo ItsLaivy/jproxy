@@ -1,5 +1,6 @@
 package codes.laivy.proxy.http;
 
+import codes.laivy.proxy.ProxyServer;
 import codes.laivy.proxy.http.impl.HttpProxyImpl;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.core5.http.HttpException;
@@ -16,7 +17,7 @@ import java.util.Base64;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public abstract class HttpProxy extends Proxy implements AutoCloseable {
+public abstract class HttpProxy extends ProxyServer implements AutoCloseable {
 
     // Initializers
 
@@ -29,21 +30,14 @@ public abstract class HttpProxy extends Proxy implements AutoCloseable {
 
     // Object
 
-    private final @NotNull InetSocketAddress address;
     private final @Nullable Authorization authorization;
 
     protected HttpProxy(@NotNull InetSocketAddress address, @Nullable Authorization authorization) {
         super(Type.HTTP, address);
-
-        this.address = address;
         this.authorization = authorization;
     }
 
     // Getters
-
-    public final @NotNull InetSocketAddress getAddress() {
-        return address;
-    }
 
     public abstract @Nullable ServerSocket getServer();
 
@@ -84,17 +78,8 @@ public abstract class HttpProxy extends Proxy implements AutoCloseable {
     // java.net.Proxy natives
 
     @Override
-    public final SocketAddress address() {
-        return getAddress();
-    }
-    @Override
-    public final @NotNull Type type() {
-        return Type.HTTP;
-    }
-
-    @Override
     public @NotNull String toString() {
-        return "HttpProxy " + address;
+        return "Http Proxy '" + address() + "'";
     }
 
     // Classes
