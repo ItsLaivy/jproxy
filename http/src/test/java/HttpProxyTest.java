@@ -177,7 +177,7 @@ public final class HttpProxyTest {
 
             // Prepare connection and start http proxy
             @NotNull Connection connection;
-            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, Authorization.bearer("Proxy-Authorization", (string) -> string.equals(validToken)))) {
+            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, Authorization.bearer(HttpHeaders.PROXY_AUTHORIZATION, (string) -> string.equals(validToken)))) {
                 Assertions.assertTrue(proxy.start());
 
                 // Test with JSoup without authorization
