@@ -1,7 +1,9 @@
 package codes.laivy.proxy.http.impl;
 
+import codes.laivy.proxy.http.core.HttpAuthorization;
 import codes.laivy.proxy.http.HttpProxy;
 import codes.laivy.proxy.http.connection.HttpProxyClient;
+import codes.laivy.proxy.http.core.SecureHttpRequest;
 import codes.laivy.proxy.http.utils.HttpSerializers;
 import codes.laivy.proxy.http.utils.HttpUtils;
 import io.netty.util.concurrent.ThreadPerTaskExecutor;
@@ -54,7 +56,7 @@ public class HttpProxyImpl extends HttpProxy {
 
     // Constructor
 
-    public HttpProxyImpl(@NotNull InetSocketAddress address, @Nullable HttpProxy.Authorization authorization) {
+    public HttpProxyImpl(@NotNull InetSocketAddress address, @Nullable HttpAuthorization authorization) {
         super(address, authorization);
     }
 
@@ -91,37 +93,42 @@ public class HttpProxyImpl extends HttpProxy {
     @Override
     public @NotNull HttpResponse request(@NotNull HttpProxyClient client, @NotNull HttpRequest clientRequest) throws IOException, HttpException {
         // Create clone request
-        @NotNull HttpRequest request;
+        @NotNull HttpRequest request = clientRequest;
 
-        try {
-            @NotNull URI uri = clientRequest.getUri();
+        if (!(clientRequest instanceof SecureHttpRequest)) {
+            try {
+                @NotNull URI uri = clientRequest.getUri();
 
-            if (clientRequest instanceof HttpEntityContainer) {
-                request = new BasicClassicHttpRequest(clientRequest.getMethod(), uri.getPath());
-                ((BasicClassicHttpRequest) request).setEntity(((HttpEntityContainer) clientRequest).getEntity());
-            } else {
-                request = new BasicHttpRequest(clientRequest.getMethod(), uri.getPath());
+                if (clientRequest instanceof HttpEntityContainer) {
+                    request = new BasicClassicHttpRequest(clientRequest.getMethod(), uri.getPath());
+                    ((BasicClassicHttpRequest) request).setEntity(((HttpEntityContainer) clientRequest).getEntity());
+                } else {
+                    request = new BasicHttpRequest(clientRequest.getMethod(), uri.getPath());
+                }
+
+                request.setVersion(clientRequest.getVersion());
+
+                for (@NotNull Header header : clientRequest.getHeaders()) {
+                    request.addHeader(header);
+                }
+
+                // todo: last address
+                request.setHeader("Host", HttpUtils.getAddress(null, clientRequest).getHostName());
+                if (!request.containsHeader("User-Agent")) {
+                    request.addHeader("User-Agent", "java-" + System.getProperty("java.version"));
+                } if (!request.containsHeader("Connection")) {
+                    request.addHeader("Connection", "close");
+                }
+            } catch (@NotNull Throwable throwable) {
+                throw new HttpException("cannot create clone request", throwable);
             }
-
-            request.setVersion(clientRequest.getVersion());
-
-            for (@NotNull Header header : clientRequest.getHeaders()) {
-                request.addHeader(header);
-            }
-
-            request.setHeader("Host", HttpUtils.getAddress(client.getAddress(), uri.toString()).getHostName());
-            if (!request.containsHeader("User-Agent")) {
-                request.addHeader("User-Agent", "java-" + System.getProperty("java.version"));
-            } if (!request.containsHeader("Connection")) {
-                request.addHeader("Connection", "close");
-            }
-        } catch (@NotNull Throwable throwable) {
-            throw new HttpException("cannot create clone request", throwable);
         }
 
         // Request
         try (@NotNull SocketChannel channel = SocketChannel.open()) {
-            @NotNull InetSocketAddress address = HttpUtils.getAddress(client.getAddress(), clientRequest.getUri().toString());
+            // todo: last address
+            @NotNull InetSocketAddress address = HttpUtils.getAddress(null, clientRequest);
+            System.out.println(address + " - " + client.getAddress());
             channel.bind(new InetSocketAddress(address().getAddress(), 0));
             channel.connect(address);
 
