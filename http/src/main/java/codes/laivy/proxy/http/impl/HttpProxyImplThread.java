@@ -1,8 +1,9 @@
 package codes.laivy.proxy.http.impl;
 
 import codes.laivy.proxy.exception.SerializationException;
-import codes.laivy.proxy.http.HttpProxy;
+import codes.laivy.proxy.http.core.HttpAuthorization;
 import codes.laivy.proxy.http.connection.HttpProxyClient;
+import codes.laivy.proxy.http.core.SecureHttpRequest;
 import codes.laivy.proxy.http.utils.HttpSerializers;
 import codes.laivy.proxy.http.utils.HttpUtils;
 import org.apache.hc.core5.http.HttpRequest;
@@ -14,7 +15,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
 
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.ServerSocket;
@@ -23,7 +23,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -109,97 +108,97 @@ class HttpProxyImplThread extends Thread {
                         @NotNull SocketChannel clientChannel = (SocketChannel) key.channel();
 
                         try {
-                            @NotNull Optional<HttpProxyClient> optional = getProxy().getClients().stream().filter(socket -> socket.getSocket().equals(clientChannel.socket())).findFirst();
+                            @Nullable HttpProxyClient client = getProxy().getClients().stream().filter(socket -> socket.getSocket().equals(clientChannel.socket())).findFirst().orElse(null);
 
-                            if (!optional.isPresent()) {
+                            if (client == null) {
                                 clientChannel.close();
-                                return;
-                            }
+                            } else {
+                                @NotNull Socket socket = clientChannel.socket();
+                                @NotNull ByteBuffer buffer;
 
-                            @NotNull HttpProxyClient client = optional.get();
-                            @NotNull Socket socket = clientChannel.socket();
-                            @NotNull ByteBuffer buffer;
+                                @NotNull HttpRequest request;
 
-                            @NotNull HttpRequest request;
+                                try {
+                                    @NotNull ByteBuffer readBuffer = ByteBuffer.allocate(1024);
+                                    @NotNull StringBuilder stringBuilder = new StringBuilder();
 
-                            try {
-                                @NotNull ByteBuffer readBuffer = ByteBuffer.allocate(1024);
-                                @NotNull StringBuilder stringBuilder = new StringBuilder();
+                                    int read = clientChannel.read(readBuffer);
 
-                                int read = clientChannel.read(readBuffer);
+                                    if (read == -1) {
+                                        client.close();
+                                        continue;
+                                    } else while (read > 0) {
+                                        readBuffer.flip();
+                                        stringBuilder.append(StandardCharsets.UTF_8.decode(readBuffer));
+                                        readBuffer.clear();
 
-                                if (read == -1) {
+                                        read = clientChannel.read(readBuffer);
+                                    }
+
+                                    buffer = ByteBuffer.wrap(stringBuilder.toString().getBytes(StandardCharsets.UTF_8));
+                                } catch (@NotNull IOException ignore) {
                                     client.close();
                                     continue;
-                                } else while (read > 0) {
-                                    readBuffer.flip();
-                                    stringBuilder.append(StandardCharsets.UTF_8.decode(readBuffer));
-                                    readBuffer.clear();
-
-                                    read = clientChannel.read(readBuffer);
                                 }
 
-                                buffer = ByteBuffer.wrap(stringBuilder.toString().getBytes(StandardCharsets.UTF_8));
-                            } catch (@NotNull IOException ignore) {
-                                client.close();
-                                continue;
-                            }
-
-                            try {
-                                request = HttpSerializers.getHttpRequest().deserialize(buffer);
-                                System.out.println("Read: '" + new String(HttpSerializers.getHttpRequest().serialize(request).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
-
-                                @Nullable HttpProxy.Authorization authorization = getProxy().getAuthentication();
-                                if (authorization != null && Method.normalizedValueOf(request.getMethod()) != Method.CONNECT) {
-                                    @Nullable HttpResponse authResponse = null;
-
-                                    try {
-                                        if (!authorization.validate(socket, request)) {
-                                            authResponse = HttpUtils.unauthorizedResponse(request.getVersion());
-                                        }
-                                    } catch (@NotNull Throwable throwable) {
-                                        getUncaughtExceptionHandler().uncaughtException(this, throwable);
-                                        authResponse = HttpUtils.unauthorizedResponse(request.getVersion());
-                                    }
-
-                                    if (authResponse != null) {
-                                        clientChannel.write(getHttpResponse().serialize(authResponse));
-                                        continue;
-                                    }
-                                }
-                            } catch (@NotNull Throwable throwable) {
-                                client.close();
-                                continue;
-                            }
-
-                            CompletableFuture.runAsync(() -> {
                                 try {
-                                    try {
-                                        if (request.getMethod().equalsIgnoreCase("CONNECT")) {
-                                            clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getVersion())));
-                                            System.out.println("Send 4");
-                                        } else {
-                                            @NotNull HttpResponse response = getProxy().request(client, request);
-                                            clientChannel.write(getHttpResponse().serialize(response));
-                                            System.out.println("Send 5 - '" + new String(getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
-                                        }
-                                    } catch (@NotNull Throwable throwable) {
-                                        @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "proxy internal error");
+                                    request = HttpSerializers.getHttpRequest().deserialize(buffer);
+                                    System.out.println("Read: '" + new String(HttpSerializers.getHttpRequest().serialize(request).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
 
-                                        if (throwable instanceof SerializationException) {
-                                            response = new BasicHttpResponse(HttpStatus.SC_BAD_REQUEST, "invalid request format");
-                                        } else if (throwable instanceof ConnectException) {
-                                            response = new BasicHttpResponse(HttpStatus.SC_BAD_REQUEST, throwable.getMessage());
-                                        }
+                                    if (!(request instanceof SecureHttpRequest)) {
+                                        @Nullable HttpAuthorization authorization = getProxy().getAuthentication();
+                                        if (authorization != null && Method.normalizedValueOf(request.getMethod()) != Method.CONNECT) {
+                                            @Nullable HttpResponse authResponse = authorization.validate(client, request);
 
-                                        response.setVersion(request.getVersion());
-                                        clientChannel.write(HttpSerializers.getHttpResponse().serialize(response));
-                                        client.close();
+                                            if (authResponse != null) {
+                                                clientChannel.write(getHttpResponse().serialize(authResponse));
+                                                continue;
+                                            }
+                                        }
                                     }
                                 } catch (@NotNull Throwable throwable) {
-                                    getUncaughtExceptionHandler().uncaughtException(HttpProxyImplThread.this, throwable);
+                                    client.close();
+                                    continue;
                                 }
-                            }, getProxy().getExecutor(socket, request));
+
+                                CompletableFuture.runAsync(() -> {
+                                    try {
+                                        try {
+                                            if (!(request instanceof SecureHttpRequest) && request.getMethod().equalsIgnoreCase("CONNECT")) {
+                                                clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getVersion())));
+                                                System.out.println("Send 4");
+                                            } else {
+                                                @NotNull HttpResponse response = getProxy().request(client, request);
+                                                clientChannel.write(getHttpResponse().serialize(response));
+                                                System.out.println("Send 5 - '" + new String(getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
+                                            }
+                                        } catch (@NotNull Throwable throwable) {
+                                            if (client.isSecure()) {
+                                                throwable.printStackTrace();
+                                                getUncaughtExceptionHandler().uncaughtException(this, throwable);
+                                                client.close();
+                                            } else {
+                                                @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "proxy internal error");
+
+                                                if (throwable instanceof SerializationException) {
+                                                    response = new BasicHttpResponse(HttpStatus.SC_BAD_REQUEST, "invalid request format");
+                                                } else if (throwable instanceof ConnectException) {
+                                                    response = new BasicHttpResponse(HttpStatus.SC_BAD_REQUEST, throwable.getMessage());
+                                                }
+
+                                                if (!(request instanceof SecureHttpRequest)) {
+                                                    response.setVersion(request.getVersion());
+                                                }
+
+                                                clientChannel.write(HttpSerializers.getHttpResponse().serialize(response));
+                                                client.close();
+                                            }
+                                        }
+                                    } catch (@NotNull Throwable throwable) {
+                                        getUncaughtExceptionHandler().uncaughtException(HttpProxyImplThread.this, throwable);
+                                    }
+                                }, getProxy().getExecutor(socket, request));
+                            }
                         } catch (@NotNull Throwable throwable) {
                             getUncaughtExceptionHandler().uncaughtException(this, throwable);
                         }
