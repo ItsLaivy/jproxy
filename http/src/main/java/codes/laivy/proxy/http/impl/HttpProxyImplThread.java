@@ -2,6 +2,7 @@ package codes.laivy.proxy.http.impl;
 
 import codes.laivy.proxy.http.HttpProxy;
 import codes.laivy.proxy.exception.SerializationException;
+import codes.laivy.proxy.http.connection.HttpProxyClient;
 import codes.laivy.proxy.http.utils.HttpSerializers;
 import codes.laivy.proxy.http.utils.HttpUtils;
 import org.apache.hc.core5.http.HttpRequest;
@@ -82,17 +83,22 @@ class HttpProxyImplThread extends Thread {
                     keyIterator.remove();
 
                     if (isAcceptable(key)) {
-                        try {
-                            @NotNull SocketChannel clientSocket = server.accept().getChannel();
+                        @Nullable SocketChannel clientSocket = null;
 
-                            try {
-                                clientSocket.configureBlocking(false);
-                                clientSocket.register(selector, SelectionKey.OP_READ);
-                            } catch (Exception e) {
-                                clientSocket.close();
-                            }
+                        try {
+                            // Accept the socket
+                            clientSocket = server.accept().getChannel();
+                            // Configure the socket
+                            clientSocket.configureBlocking(false);
+                            clientSocket.register(selector, SelectionKey.OP_READ);
+                            // Create the proxy client
+                            @NotNull HttpProxyClientImpl client = new HttpProxyClientImpl(getProxy(), clientSocket);
                         } catch (@NotNull Throwable throwable) {
                             getUncaughtExceptionHandler().uncaughtException(this, throwable);
+
+                            if (clientSocket != null) {
+                                try { clientSocket.close(); } catch (IOException ignore) {}
+                            }
                         }
                     }
                     if (isReadable(key)) {
@@ -129,6 +135,7 @@ class HttpProxyImplThread extends Thread {
 
                             try {
                                 request = HttpSerializers.getHttpRequest().deserialize(buffer);
+                                System.out.println("Read: '" + new String(HttpSerializers.getHttpRequest().serialize(request).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
                             } catch (@NotNull Throwable throwable) {
                                 clientChannel.close();
                                 continue;

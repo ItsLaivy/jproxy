@@ -110,20 +110,20 @@ public final class HttpProxyTest {
             try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null)) {
                 Assertions.assertTrue(proxy.start());
 
-            // Test with JSoup
-            @NotNull Connection connection = Jsoup.connect("http://localhost/")
-                    .proxy(proxy)
+                // Test with JSoup
+                @NotNull Connection connection = Jsoup.connect("http://localhost/")
+                        .proxy(proxy)
 
-                    .method(Connection.Method.DELETE)
+                        .method(Connection.Method.DELETE)
 
-                    .ignoreContentType(true)
-                    .ignoreHttpErrors(true);
-            @NotNull Connection.Response response = connection.execute();
-            Assertions.assertEquals(HttpStatus.SC_OK, response.statusCode(), response.statusMessage());
+                        .ignoreContentType(true)
+                        .ignoreHttpErrors(true);
+                @NotNull Connection.Response response = connection.execute();
+                Assertions.assertEquals(HttpStatus.SC_OK, response.statusCode(), response.statusMessage());
 
-            // End activities and stop
-            Assertions.assertTrue(proxy.stop());
-        }
+                // End activities and stop
+                Assertions.assertTrue(proxy.stop());
+            }
         }
         @Test
         public void head() throws Throwable {
