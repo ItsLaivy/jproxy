@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
@@ -18,6 +19,13 @@ public final class HttpUtils {
 
     private HttpUtils() {
         throw new UnsupportedOperationException();
+    }
+
+    public static boolean isSecureData(@NotNull ByteBuffer buffer) {
+        byte[] bytes = buffer.array();
+
+        if (bytes.length < 3) return false;
+        return (bytes[0] == 0x16 && (bytes[1] == 0x03 || bytes[1] == 0x02 || bytes[1] == 0x01 || bytes[1] == 0x00));
     }
 
     public static @Nullable ContentType getContentType(@NotNull MessageHeaders headers) throws ProtocolException {
