@@ -1,5 +1,6 @@
 package codes.laivy.proxy.http.utils;
 
+import codes.laivy.proxy.http.core.SecureHttpRequest;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.message.BasicHttpResponse;
 import org.jetbrains.annotations.NotNull;
@@ -11,9 +12,9 @@ import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public final class HttpUtils {
 
@@ -21,9 +22,21 @@ public final class HttpUtils {
         throw new UnsupportedOperationException();
     }
 
-    public static boolean isSecureData(@NotNull ByteBuffer buffer) {
-        byte[] bytes = buffer.array();
+    public static boolean isHeaderSensitive(@NotNull String headerName) {
+        @NotNull String[] sensitiveHeaders = new String[] {
+                "Authorization", "WWW-Authenticate", "Proxy-Authenticate", "Proxy-Authorization",
+                "Cookie", "Set-Cookie",
+                "Age", "Cache-Control", "Clear-Site-Data", "Expires",
+                "Last-Modified",
+                "ETag",
+                "If-Match", "If-Modified-Since", "If-Unmodified-Since",
+                "X-Frame-Options", "X-XSS-Protection", "X-Content-Type-Options",
+                "Referrer-Policy"
+        };
 
+        return Arrays.asList(sensitiveHeaders).contains(headerName);
+    }
+    public static boolean isSecureData(byte @NotNull [] bytes) {
         if (bytes.length < 3) return false;
         return (bytes[0] == 0x16 && (bytes[1] == 0x03 || bytes[1] == 0x02 || bytes[1] == 0x01 || bytes[1] == 0x00));
     }
@@ -59,17 +72,6 @@ public final class HttpUtils {
     }
 
     /**
-     * Creates a response with the status code 401 (Unauthorized) and a message indicating that the proxy authentication failed
-     * @return an HTTP response object with the 401 status code and a message
-     */
-    public static @NotNull HttpResponse unauthorizedResponse(@NotNull ProtocolVersion version) {
-        @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_UNAUTHORIZED, "proxy authorization failed");
-        response.setVersion(version);
-
-        return response;
-    }
-
-    /**
      * Creates a response with the status code 400 (Client Error) and a message indicating that the proxy failed to process the client request
      * @return an HTTP response object with the 400 status code and a message
      */
@@ -80,17 +82,28 @@ public final class HttpUtils {
         return response;
     }
 
-    public static @NotNull InetSocketAddress getAddress(@Nullable InetSocketAddress previous, @NotNull String path) throws URISyntaxException {
-        if (path.startsWith("/")) {
+    public static @NotNull InetSocketAddress getAddress(@Nullable InetSocketAddress previous, @NotNull HttpRequest request) throws URISyntaxException {
+        if (request instanceof SecureHttpRequest) {
             if (previous == null) {
-                throw new IllegalArgumentException("invalid path destination without a previous valid address");
-            } else {
-                @NotNull URI uri = new URI(null, null, previous.getHostName(), previous.getPort(), path, null, null);
-                return new InetSocketAddress(uri.getHost(), uri.getPort());
+                throw new IllegalArgumentException("the previous address cannot be null on a secure http request");
             }
+
+            System.out.println("Previous: '" + previous + "'");
+            return previous;
         } else {
-            @NotNull URI uri = new URI(path);
-            return new InetSocketAddress(uri.getHost(), uri.getPort() == -1 ? 80 : uri.getPort());
+            @NotNull String path = request.getUri().toString();
+
+            if (path.startsWith("/")) {
+                if (previous == null) {
+                    throw new IllegalArgumentException("invalid path destination without a previous valid address");
+                } else {
+                    @NotNull URI uri = new URI(null, null, previous.getHostName(), previous.getPort(), path, null, null);
+                    return new InetSocketAddress(uri.getHost(), uri.getPort());
+                }
+            } else {
+                @NotNull URI uri = new URI(path);
+                return new InetSocketAddress(uri.getHost(), uri.getPort() == -1 ? 80 : uri.getPort());
+            }
         }
     }
 
