@@ -1,32 +1,17 @@
 package codes.laivy.proxy.http.impl;
 
-import codes.laivy.proxy.exception.SerializationException;
-import codes.laivy.proxy.http.core.HttpAuthorization;
 import codes.laivy.proxy.http.connection.HttpProxyClient;
-import codes.laivy.proxy.http.core.SecureHttpRequest;
-import codes.laivy.proxy.http.utils.HttpSerializers;
-import codes.laivy.proxy.http.utils.HttpUtils;
 import org.apache.hc.core5.http.HttpRequest;
-import org.apache.hc.core5.http.HttpResponse;
-import org.apache.hc.core5.http.HttpStatus;
-import org.apache.hc.core5.http.Method;
-import org.apache.hc.core5.http.message.BasicHttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
 
 import java.io.IOException;
-import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.nio.channels.*;
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-
-import static codes.laivy.proxy.http.utils.HttpSerializers.getHttpResponse;
 
 class HttpProxyImplThread extends Thread {
 
@@ -114,90 +99,21 @@ class HttpProxyImplThread extends Thread {
                                 clientChannel.close();
                             } else {
                                 @NotNull Socket socket = clientChannel.socket();
-                                @NotNull ByteBuffer buffer;
+                                @Nullable HttpRequest request = client.read();
 
-                                @NotNull HttpRequest request;
-
-                                try {
-                                    @NotNull ByteBuffer readBuffer = ByteBuffer.allocate(1024);
-                                    @NotNull StringBuilder stringBuilder = new StringBuilder();
-
-                                    int read = clientChannel.read(readBuffer);
-
-                                    if (read == -1) {
-                                        client.close();
-                                        continue;
-                                    } else while (read > 0) {
-                                        readBuffer.flip();
-                                        stringBuilder.append(StandardCharsets.UTF_8.decode(readBuffer));
-                                        readBuffer.clear();
-
-                                        read = clientChannel.read(readBuffer);
-                                    }
-
-                                    buffer = ByteBuffer.wrap(stringBuilder.toString().getBytes(StandardCharsets.UTF_8));
-                                } catch (@NotNull IOException ignore) {
+                                if (request == null) {
                                     client.close();
-                                    continue;
-                                }
-
-                                try {
-                                    request = HttpSerializers.getHttpRequest().deserialize(buffer);
-                                    System.out.println("Read: '" + new String(HttpSerializers.getHttpRequest().serialize(request).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
-
-                                    if (!(request instanceof SecureHttpRequest)) {
-                                        @Nullable HttpAuthorization authorization = getProxy().getAuthentication();
-                                        if (authorization != null && Method.normalizedValueOf(request.getMethod()) != Method.CONNECT) {
-                                            @Nullable HttpResponse authResponse = authorization.validate(client, request);
-
-                                            if (authResponse != null) {
-                                                clientChannel.write(getHttpResponse().serialize(authResponse));
-                                                continue;
-                                            }
-                                        }
-                                    }
-                                } catch (@NotNull Throwable throwable) {
-                                    client.close();
-                                    continue;
-                                }
-
-                                CompletableFuture.runAsync(() -> {
-                                    try {
-                                        try {
-                                            if (!(request instanceof SecureHttpRequest) && request.getMethod().equalsIgnoreCase("CONNECT")) {
-                                                clientChannel.write(getHttpResponse().serialize(HttpUtils.successResponse(request.getVersion())));
-                                                System.out.println("Send 4");
-                                            } else {
-                                                @NotNull HttpResponse response = getProxy().request(client, request);
-                                                clientChannel.write(getHttpResponse().serialize(response));
-                                                System.out.println("Send 5 - '" + new String(getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
-                                            }
+                                } else {
+                                    client.request(request).whenComplete((done, exception) -> {
+                                        if (exception != null) {
+                                            client
+                                        } else try {
+                                            client.write(done);
                                         } catch (@NotNull Throwable throwable) {
-                                            if (client.isSecure()) {
-                                                throwable.printStackTrace();
-                                                getUncaughtExceptionHandler().uncaughtException(this, throwable);
-                                                client.close();
-                                            } else {
-                                                @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "proxy internal error");
 
-                                                if (throwable instanceof SerializationException) {
-                                                    response = new BasicHttpResponse(HttpStatus.SC_BAD_REQUEST, "invalid request format");
-                                                } else if (throwable instanceof ConnectException) {
-                                                    response = new BasicHttpResponse(HttpStatus.SC_BAD_REQUEST, throwable.getMessage());
-                                                }
-
-                                                if (!(request instanceof SecureHttpRequest)) {
-                                                    response.setVersion(request.getVersion());
-                                                }
-
-                                                clientChannel.write(HttpSerializers.getHttpResponse().serialize(response));
-                                                client.close();
-                                            }
                                         }
-                                    } catch (@NotNull Throwable throwable) {
-                                        getUncaughtExceptionHandler().uncaughtException(HttpProxyImplThread.this, throwable);
-                                    }
-                                }, getProxy().getExecutor(socket, request));
+                                    });
+                                }
                             }
                         } catch (@NotNull Throwable throwable) {
                             getUncaughtExceptionHandler().uncaughtException(this, throwable);

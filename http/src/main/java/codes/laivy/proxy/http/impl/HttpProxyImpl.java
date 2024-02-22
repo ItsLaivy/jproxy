@@ -31,21 +31,6 @@ import static codes.laivy.proxy.http.utils.HttpSerializers.getHttpResponse;
 
 public class HttpProxyImpl extends HttpProxy {
 
-    // Default executor used on #getExecutor
-    private final @NotNull ThreadPerTaskExecutor executor = new ThreadPerTaskExecutor(new ThreadFactory() {
-
-        private final @NotNull AtomicInteger count = new AtomicInteger(0);
-
-        @Override
-        public Thread newThread(@NotNull Runnable r) {
-            @NotNull Thread thread = new Thread(r);
-            thread.setDaemon(false);
-            thread.setName("Proxy '" + address() + "' request #");
-
-            return thread;
-        }
-    });
-
     // Object
 
     private final @NotNull Collection<HttpProxyClient> clients = new HttpProxyClients();
@@ -67,11 +52,6 @@ public class HttpProxyImpl extends HttpProxy {
         return clients;
     }
 
-    @ApiStatus.OverrideOnly
-    public @NotNull Executor getExecutor(@NotNull Socket socket, @NotNull HttpRequest request) {
-        return executor;
-    }
-
     public final @Nullable Thread getThread() {
         return thread;
     }
@@ -90,7 +70,7 @@ public class HttpProxyImpl extends HttpProxy {
         return server;
     }
 
-    @Override
+    // todo: remove this
     public @NotNull HttpResponse request(@NotNull HttpProxyClient client, @NotNull HttpRequest clientRequest) throws IOException, HttpException {
         // Create clone request
         @NotNull HttpRequest request = clientRequest;
