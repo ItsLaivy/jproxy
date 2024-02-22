@@ -4,7 +4,6 @@ import codes.laivy.proxy.exception.SerializationException;
 import codes.laivy.proxy.http.connection.HttpProxyClient;
 import codes.laivy.proxy.http.core.HttpAuthorization;
 import codes.laivy.proxy.http.core.SecureHttpRequest;
-import codes.laivy.proxy.http.utils.HttpAddressUtils;
 import codes.laivy.proxy.http.utils.HttpSerializers;
 import codes.laivy.proxy.http.utils.HttpUtils;
 import io.netty.util.concurrent.ThreadPerTaskExecutor;
@@ -186,6 +185,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
         buffer = ByteBuffer.wrap(builder.toString().getBytes(StandardCharsets.UTF_8));
         System.out.println("Read brute: '" + new String(buffer.array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
         @NotNull HttpRequest request = HttpSerializers.getHttpRequest().deserialize(buffer);
+        System.out.println("Read parse: '" + new String(HttpSerializers.getHttpRequest().serialize(request).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
 
         if (request instanceof SecureHttpRequest) {
             return request;
@@ -204,20 +204,21 @@ public class HttpProxyClientImpl implements HttpProxyClient {
             try {
                 if (request instanceof HttpEntityContainer) {
                     @NotNull BasicClassicHttpRequest withBody = new BasicClassicHttpRequest(request.getMethod(), request.getUri().getPath());
-                    withBody.setVersion(request.getVersion());
                     withBody.setEntity(((HttpEntityContainer) request).getEntity());
-
                     clone = withBody;
                 } else {
                     @NotNull BasicHttpRequest withBody = new BasicHttpRequest(request.getMethod(), request.getUri().getPath());
-                    withBody.setVersion(request.getVersion());
-
                     clone = withBody;
                 }
+
+                clone.setVersion(request.getVersion());
+                clone.setAuthority(request.getAuthority());
 
                 for (@NotNull Header header : request.getHeaders()) {
                     clone.addHeader(header);
                 }
+
+                clone.setHeader("Host", request.getAuthority());
             } catch (@NotNull Throwable throwable) {
                 throw new SerializationException("cannot clone http request", throwable);
             }
@@ -258,7 +259,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
                     @NotNull InetSocketAddress address;
 
                     if (!(request instanceof SecureHttpRequest)) {
-                        address = HttpAddressUtils.getAddressByHost(request.getHeader(HttpHeaders.HOST).getValue());
+                        address = new InetSocketAddress(request.getAuthority().getHostName(), request.getAuthority().getPort());
 
                         if (request.getMethod().equalsIgnoreCase("CONNECT")) {
                             boolean keepAlive = !request.containsHeader(HttpHeaders.PROXY_CONNECTION) || request.getHeader(HttpHeaders.PROXY_CONNECTION).getValue().equalsIgnoreCase("keep-alive");

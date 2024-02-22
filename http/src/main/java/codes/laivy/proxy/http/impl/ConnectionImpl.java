@@ -12,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
@@ -78,13 +77,12 @@ public class ConnectionImpl implements HttpProxyClient.Connection {
         @NotNull SocketChannel channel = SocketChannel.open();
         channel.configureBlocking(false);
 
-        channel.bind(new InetSocketAddress(client.getProxy().address().getAddress(), 0));
+        channel.bind(new InetSocketAddress(getClient().getProxy().address().getHostName(), 0));
         channel.connect(getAddress());
 
-        System.out.println("Address: '" + getAddress() + "'");
-        if (!channel.finishConnect()) {
-            throw new ConnectException("cannot connect to the destination");
-        }
+        System.out.println("Address: '" + getAddress().getHostName() + "' - '" + getAddress().getPort() + "' - '" + getAddress().isUnresolved() + "'");
+
+        channel.finishConnect();
 
         new Thread(() -> {
             while (channel.isConnected()) {
@@ -130,7 +128,7 @@ public class ConnectionImpl implements HttpProxyClient.Connection {
                 } catch (@NotNull Throwable ignore) {
                 }
             }
-        }, "Http Proxy Client '" + client.getAddress() + "' connection #" + client.connectionCount.get()).start();
+        }, "Http Proxy Client '" + getClient().getAddress() + "' connection #" + getClient().connectionCount.get()).start();
 
         this.socket = channel.socket();
     }
@@ -170,7 +168,7 @@ public class ConnectionImpl implements HttpProxyClient.Connection {
     // Modules
 
     protected @NotNull Executor getExecutor(@NotNull HttpRequest request) {
-        return client.getExecutor(request);
+        return getClient().getExecutor(request);
     }
 
     @Override
