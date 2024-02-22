@@ -4,13 +4,13 @@ import codes.laivy.proxy.http.connection.HttpProxyClient;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 class HttpProxyClients implements Collection<HttpProxyClient> {
 
-    private final @NotNull Set<HttpProxyClient> clients = new HashSet<>();
+    private final @NotNull Set<HttpProxyClient> clients = ConcurrentHashMap.newKeySet();
 
     @Override
     public int size() {
