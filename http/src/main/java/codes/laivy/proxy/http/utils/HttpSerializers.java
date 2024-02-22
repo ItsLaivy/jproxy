@@ -56,8 +56,6 @@ public final class HttpSerializers {
             byte[] bytes = buffer.array();
             buffer.clear();
 
-            // todo: 400: Bad Request - if the request doesn't have the "Host" parameter in HTTP/1.1 requests. And multiples connections with different hostings
-
             if (HttpUtils.isSecureData(bytes)) {
                 return new SecureHttpRequest(bytes);
             }
@@ -134,9 +132,9 @@ public final class HttpSerializers {
                 return new SecureHttpResponse(bytes);
             }
 
-            @NotNull String[] content = new String(bytes, StandardCharsets.UTF_8).replaceAll("\r", "").split("\n\n", 2);
-            @NotNull String[] parts = content[0].replaceAll("\n", " ").split(" ");
-            @NotNull MessageHeaders headers = getHeaders().deserialize(ByteBuffer.wrap(content[0].substring(Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length()).getBytes()));
+            @NotNull String[] content = new String(bytes, StandardCharsets.UTF_8).split("\n\n", 2);
+            @NotNull String[] parts = content[0].replaceAll("\r", "").replaceAll("\n", " ").split(" ");
+            @NotNull MessageHeaders headers = getHeaders().deserialize(ByteBuffer.wrap(content[0].substring(content[0].split("\r")[0].length()).getBytes()));
 
             @NotNull HttpResponse response;
             @NotNull StatusLine line;
@@ -166,6 +164,7 @@ public final class HttpSerializers {
 
                 response.setVersion(line.getProtocolVersion());
             } catch (@NotNull Throwable throwable) {
+                throwable.printStackTrace();
                 throw new SerializationException("cannot read response body", throwable);
             }
 
@@ -181,15 +180,16 @@ public final class HttpSerializers {
         }
         @Override
         public @UnknownNullability ProtocolVersion deserialize(@NotNull ByteBuffer buffer) {
+            @NotNull String string = StandardCharsets.UTF_8.decode(buffer).toString();
+
             try {
-                @NotNull String string = new String(buffer.array());
 
                 @NotNull String[] parts = string.split("/");
                 @NotNull String[] version = parts[1].split("\\.");
 
                 return new ProtocolVersion(parts[0], Integer.parseInt(version[0]), Integer.parseInt(version[1]));
             } catch (@NotNull Throwable throwable) {
-                throw new IllegalArgumentException("cannot parse protocol version", throwable);
+                throw new IllegalArgumentException("cannot parse protocol version '" + string + "'", throwable);
             }
         }
     };
