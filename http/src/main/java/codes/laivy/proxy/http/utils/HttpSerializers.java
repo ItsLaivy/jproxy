@@ -7,6 +7,7 @@ import codes.laivy.proxy.utils.Serializer;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.*;
+import org.apache.hc.core5.net.URIAuthority;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
@@ -37,7 +38,9 @@ public final class HttpSerializers {
             }
 
             try {
-                @NotNull StringBuilder builder = new StringBuilder(request.getMethod() + " " + request.getUri() + " " + request.getVersion() + "\r\n");
+                @NotNull String authority = request.getAuthority() != null ? request.getAuthority().toString() : request.getUri().toString();
+
+                @NotNull StringBuilder builder = new StringBuilder(request.getMethod() + " " + authority + " " + request.getVersion() + "\r\n");
                 builder.append(new String(getHeaders().serialize(request).array(), StandardCharsets.UTF_8));
                 builder.append("\r\n");
 
@@ -64,36 +67,37 @@ public final class HttpSerializers {
             @NotNull String[] parts = content[0].replaceAll("\n", " ").split(" ");
             @NotNull MessageHeaders headers = getHeaders().deserialize(ByteBuffer.wrap(content[0].substring(Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length()).getBytes()));
 
-            @NotNull HttpRequest httpRequest;
+            @NotNull HttpRequest clone;
 
             try {
                 // Method, uri and protocol version
                 @NotNull String method = parts[0];
-                @NotNull URI uri = new URI(parts[1]);
+                @NotNull URI uri = URI.create(parts[1]);
                 @NotNull ProtocolVersion version = getProtocolVersion().deserialize(ByteBuffer.wrap(parts[2].getBytes(StandardCharsets.UTF_8)));
+                @NotNull URIAuthority authority = URIAuthority.create(parts[1]);
 
                 // Create request
                 if (content.length > 1) { // Request with body
                     @NotNull String body = content[1];
 
-                    httpRequest = new BasicClassicHttpRequest(method, uri);
-                    httpRequest.setVersion(version);
-
-                    ((BasicClassicHttpRequest) httpRequest).setEntity(new StringEntity(body, HttpUtils.getContentType(headers)));
+                    clone = new BasicClassicHttpRequest(method, uri);
+                    ((BasicClassicHttpRequest) clone).setEntity(new StringEntity(body, HttpUtils.getContentType(headers)));
                 } else { // Request without body
-                    httpRequest = new BasicHttpRequest(method, uri);
-                    httpRequest.setVersion(version);
+                    clone = new BasicHttpRequest(method, uri);
                 }
+
+                clone.setVersion(version);
+                clone.setAuthority(authority);
 
                 // Add headers
                 for (Header header : headers.getHeaders()) {
-                    httpRequest.addHeader(header);
+                    clone.addHeader(header);
                 }
             } catch (@NotNull Throwable throwable) {
                 throw new SerializationException("cannot read request basics", throwable);
             }
 
-            return httpRequest;
+            return clone;
         }
     };
 
@@ -137,6 +141,7 @@ public final class HttpSerializers {
             @NotNull MessageHeaders headers = getHeaders().deserialize(ByteBuffer.wrap(content[0].substring(content[0].split("\r")[0].length()).getBytes()));
 
             @NotNull HttpResponse response;
+            // todo: the message can have multiples spaces
             @NotNull StatusLine line;
 
             try {
