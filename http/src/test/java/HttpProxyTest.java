@@ -195,6 +195,29 @@ public final class HttpProxyTest {
                 Assertions.assertTrue(proxy.stop());
             }
         }
+
+        @Test
+        public void session() throws Throwable {
+            // Start native http proxy
+            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null)) {
+                Assertions.assertTrue(proxy.start());
+
+                // Test with JSoup session
+                @NotNull Connection connection = Jsoup.newSession()
+                        .proxy(proxy)
+                        .ignoreContentType(true)
+                        .ignoreHttpErrors(true);
+                @NotNull Connection.Response response;
+
+                response = connection.newRequest("http://localhost/?test=1").execute();
+                Assertions.assertEquals(HttpStatus.SC_OK, response.statusCode(), response.statusMessage());
+                response = connection.newRequest("http://localhost/?test=2").execute();
+                Assertions.assertEquals(HttpStatus.SC_OK, response.statusCode(), response.statusMessage());
+
+                // End activities and stop
+                Assertions.assertTrue(proxy.stop());
+            }
+        }
     }
 
     @Nested
