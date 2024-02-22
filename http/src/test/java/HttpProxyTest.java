@@ -13,14 +13,16 @@ import java.net.InetSocketAddress;
 
 // todo: exclusive http proxy server for tests that verify headers and data
 // todo: tests with JSoup#newSession
+// todo: tests with serializers
 public final class HttpProxyTest {
 
-    private static final @NotNull InetSocketAddress PROXY_ADDRESS = new InetSocketAddress("localhost", 5555);
+    private static final @NotNull InetSocketAddress PROXY_LOCAL_ADDRESS = new InetSocketAddress("localhost", 5555);
+    private static final @NotNull InetSocketAddress PROXY_EXTERNAL_ADDRESS = new InetSocketAddress("0.0.0.0", 5556);
 
     @Test
     public void connectReconnect() throws Throwable {
         // Start native http proxy
-        try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null)) {
+        try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_LOCAL_ADDRESS, null)) {
             Assertions.assertTrue(proxy.start());
 
             // End activities and stop
@@ -37,7 +39,7 @@ public final class HttpProxyTest {
         @Test
         public void get() throws Throwable {
             // Start native http proxy
-            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null)) {
+            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_LOCAL_ADDRESS, null)) {
                 Assertions.assertTrue(proxy.start());
 
                 // Test with JSoup
@@ -58,7 +60,7 @@ public final class HttpProxyTest {
         @Test
         public void post() throws Throwable {
             // Start native http proxy
-            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null)) {
+            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_LOCAL_ADDRESS, null)) {
                 Assertions.assertTrue(proxy.start());
 
                 // Json data
@@ -83,7 +85,7 @@ public final class HttpProxyTest {
         @Test
         public void put() throws Throwable {
             // Start native http proxy
-            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null)) {
+            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_LOCAL_ADDRESS, null)) {
                 Assertions.assertTrue(proxy.start());
 
                 // Json data
@@ -108,7 +110,7 @@ public final class HttpProxyTest {
         @Test
         public void delete() throws Throwable {
             // Start native http proxy
-            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null)) {
+            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_LOCAL_ADDRESS, null)) {
                 Assertions.assertTrue(proxy.start());
 
                 // Test with JSoup
@@ -129,7 +131,7 @@ public final class HttpProxyTest {
         @Test
         public void head() throws Throwable {
             // Start native http proxy
-            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null)) {
+            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_LOCAL_ADDRESS, null)) {
                 Assertions.assertTrue(proxy.start());
 
                 // Test with JSoup
@@ -150,7 +152,7 @@ public final class HttpProxyTest {
         @Test
         public void options() throws Throwable {
             // Start native http proxy
-            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null)) {
+            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_LOCAL_ADDRESS, null)) {
                 Assertions.assertTrue(proxy.start());
 
                 // Test with JSoup
@@ -178,7 +180,7 @@ public final class HttpProxyTest {
 
             // Prepare connection and start http proxy
             @NotNull Connection connection;
-            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, HttpAuthorization.bearer(headerName, (string) -> string.equals(validToken)))) {
+            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_LOCAL_ADDRESS, HttpAuthorization.bearer(headerName, (string) -> string.equals(validToken)))) {
                 Assertions.assertTrue(proxy.start());
 
                 // Test with JSoup without authorization
@@ -199,7 +201,7 @@ public final class HttpProxyTest {
         @Test
         public void session() throws Throwable {
             // Start native http proxy
-            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null)) {
+            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_LOCAL_ADDRESS, null)) {
                 Assertions.assertTrue(proxy.start());
 
                 // Test with JSoup session
@@ -225,7 +227,7 @@ public final class HttpProxyTest {
         @Test
         public void get() throws Throwable {
             // Start native http proxy
-            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_ADDRESS, null)) {
+            try (@NotNull HttpProxy proxy = HttpProxy.create(PROXY_EXTERNAL_ADDRESS, null)) {
                 Assertions.assertTrue(proxy.start());
 
                 // Test with JSoup
