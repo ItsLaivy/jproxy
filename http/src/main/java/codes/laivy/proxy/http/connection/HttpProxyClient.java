@@ -8,7 +8,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.concurrent.CompletableFuture;
 
 public interface HttpProxyClient extends ProxyClient {
 
@@ -16,13 +18,15 @@ public interface HttpProxyClient extends ProxyClient {
     @Nullable Socket getDestination();
 
     boolean isSecure();
-    boolean isAuthenticated();
     boolean isAnonymous();
+
+    boolean isAuthenticated();
+    void setAuthenticated(boolean authenticated);
 
     // Connection
 
-    @NotNull Connection getConnection();
-    @NotNull Connection getProxyConnection();
+    @NotNull Connection @NotNull [] getConnections();
+    boolean isKeepAlive();
 
     // Modules
 
@@ -45,19 +49,25 @@ public interface HttpProxyClient extends ProxyClient {
 
     /**
      * Creates an HTTP request to the destination proxy on behalf of the client.
-     * @param request The HTTP request to be requested to the destination by the proxy.
+     * @param request The future of the HTTP request to be requested to the destination by the proxy.
      * @return An HTTP response received from the destination by the proxy.
      *
      * @throws IOException If an input or output error occurs.
      * @throws SerializationException If an error occurs trying to deserialize/serialize the response/request
      */
-    @NotNull HttpResponse request(@NotNull HttpRequest request) throws IOException, SerializationException;
+    @NotNull CompletableFuture<HttpResponse> request(@NotNull HttpRequest request) throws IOException, SerializationException;
 
     // Classes
 
-    enum Connection {
-        CLOSE,
-        KEEP_ALIVE
+    interface Connection {
+
+        @NotNull InetSocketAddress getAddress();
+        @Nullable Socket getSocket();
+
+        boolean isKeepAlive();
+
+        @NotNull HttpRequest write(@NotNull HttpResponse response) throws IOException, SerializationException;
+
     }
 
 }
