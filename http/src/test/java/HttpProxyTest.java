@@ -229,7 +229,7 @@ public final class HttpProxyTest {
                 Assertions.assertTrue(proxy.start());
 
                 // Test with JSoup
-                @NotNull Connection connection = Jsoup.connect("https://laivy.codes/")
+                @NotNull Connection connection = Jsoup.connect("https://laivy.cloud/")
                         .proxy(proxy)
 
                         .method(Connection.Method.GET)

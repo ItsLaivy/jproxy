@@ -4,6 +4,7 @@ import codes.laivy.proxy.connection.ProxyClient;
 import codes.laivy.proxy.exception.SerializationException;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.HttpResponse;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -66,6 +67,10 @@ public interface HttpProxyClient extends ProxyClient {
 
     interface Connection extends AutoCloseable {
 
+        @Contract(pure = true)
+        @NotNull HttpProxyClient getClient();
+
+        @Contract(pure = true)
         @NotNull InetSocketAddress getAddress();
         @Nullable Socket getSocket();
 

@@ -7,6 +7,7 @@ import codes.laivy.proxy.http.utils.HttpUtils;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.HttpVersion;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,25 +27,34 @@ public class ConnectionImpl implements HttpProxyClient.Connection {
 
     // Object
 
-    private final HttpProxyClientImpl httpProxyClient;
+    private final @NotNull HttpProxyClientImpl client;
     protected final @NotNull Queue<CompletableFuture<HttpResponse>> requestFutures = new ArrayDeque<>();
 
     private final @NotNull InetSocketAddress address;
-    private volatile @Nullable Socket socket;
+    protected volatile @Nullable Socket socket;
 
     protected boolean keepAlive = true;
     protected boolean secure = false;
     protected boolean anonymous = false;
 
-    protected ConnectionImpl(HttpProxyClientImpl httpProxyClient, @NotNull InetSocketAddress address) {
-        this.httpProxyClient = httpProxyClient;
+    protected ConnectionImpl(@NotNull HttpProxyClientImpl client, @NotNull InetSocketAddress address) {
+        this.client = client;
         this.address = address;
+    }
+
+    // Getters
+
+    @Override
+    @Contract(pure = true)
+    public final @NotNull HttpProxyClientImpl getClient() {
+        return client;
     }
 
     // Address
 
     @Override
-    public @NotNull InetSocketAddress getAddress() {
+    @Contract(pure = true)
+    public final @NotNull InetSocketAddress getAddress() {
         return address;
     }
 
@@ -68,9 +78,10 @@ public class ConnectionImpl implements HttpProxyClient.Connection {
         @NotNull SocketChannel channel = SocketChannel.open();
         channel.configureBlocking(false);
 
-        channel.bind(new InetSocketAddress(httpProxyClient.getProxy().address().getAddress(), 0));
+        channel.bind(new InetSocketAddress(client.getProxy().address().getAddress(), 0));
         channel.connect(getAddress());
 
+        System.out.println("Address: '" + getAddress() + "'");
         if (!channel.finishConnect()) {
             throw new ConnectException("cannot connect to the destination");
         }
@@ -119,7 +130,7 @@ public class ConnectionImpl implements HttpProxyClient.Connection {
                 } catch (@NotNull Throwable ignore) {
                 }
             }
-        }, "Http Proxy Client '" + httpProxyClient.getAddress() + "' connection #" + httpProxyClient.connectionCount.get()).start();
+        }, "Http Proxy Client '" + client.getAddress() + "' connection #" + client.connectionCount.get()).start();
 
         this.socket = channel.socket();
     }
@@ -159,7 +170,7 @@ public class ConnectionImpl implements HttpProxyClient.Connection {
     // Modules
 
     protected @NotNull Executor getExecutor(@NotNull HttpRequest request) {
-        return httpProxyClient.getExecutor(request);
+        return client.getExecutor(request);
     }
 
     @Override

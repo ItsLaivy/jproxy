@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
@@ -161,7 +162,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
     // Modules
 
     @Override
-    public @NotNull HttpRequest read() throws IOException, SerializationException {
+    public @Nullable HttpRequest read() throws IOException, SerializationException {
         @NotNull ByteBuffer buffer = ByteBuffer.allocate(4096); // 4KB Buffer
 
         @NotNull SocketChannel channel = getSocket().getChannel();
@@ -171,6 +172,9 @@ public class HttpProxyClientImpl implements HttpProxyClient {
 
         if (read == -1) {
             close();
+            return null;
+        } else if (read == 0) {
+            return null;
         } else while (read > 0) {
             buffer.flip();
             builder.append(StandardCharsets.UTF_8.decode(buffer));
@@ -306,11 +310,12 @@ public class HttpProxyClientImpl implements HttpProxyClient {
                         future.complete(clientErrorResponse(request.getVersion(), "Bad Request - Cannot connect to destination"));
                     }
                 } catch (@NotNull Throwable throwable) {
+                    throwable.printStackTrace();
                     @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "proxy internal error");
 
                     if (throwable instanceof SerializationException) {
                         response = new BasicHttpResponse(HttpStatus.SC_BAD_REQUEST, "invalid request format");
-                    } else if (throwable instanceof ConnectException) {
+                    } else if (throwable instanceof ConnectException || throwable instanceof SocketException) {
                         response = new BasicHttpResponse(HttpStatus.SC_BAD_REQUEST, throwable.getMessage());
                     }
 
