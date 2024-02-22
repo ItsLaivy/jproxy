@@ -13,6 +13,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
@@ -44,7 +45,10 @@ public final class HttpUtils {
     public static @Nullable ContentType getContentType(@NotNull MessageHeaders headers) throws ProtocolException {
         @Nullable ContentType type = null;
         if (headers.containsHeader(HttpHeaders.CONTENT_TYPE)) {
-            type = ContentType.parse(headers.getHeader(HttpHeaders.CONTENT_TYPE).getValue());
+            try {
+                type = ContentType.parse(headers.getHeader(HttpHeaders.CONTENT_TYPE).getValue());
+            } catch (@NotNull IllegalCharsetNameException ignore) {
+            }
         }
 
         return type;
