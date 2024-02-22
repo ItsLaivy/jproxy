@@ -15,10 +15,15 @@ import java.util.concurrent.CompletableFuture;
 public interface HttpProxyClient extends ProxyClient {
 
     @NotNull Socket getSocket();
-    @Nullable Socket getDestination();
 
-    boolean isSecure();
-    boolean isAnonymous();
+    /**
+     * Determines whether this HTTP proxy client is capable of handling multiple requests simultaneously.
+     * For instance, it establishes a connection to the proxy and can issue multiple requests to different websites.
+     * It always returns false for SSL connections, as an SSL connection cannot be identified if it has more than one communication at a time.
+     *
+     * @return true if the proxy client can handle multiple requests, false otherwise.
+     */
+    boolean canSession();
 
     boolean isAuthenticated();
     void setAuthenticated(boolean authenticated);
@@ -59,14 +64,19 @@ public interface HttpProxyClient extends ProxyClient {
 
     // Classes
 
-    interface Connection {
+    interface Connection extends AutoCloseable {
 
         @NotNull InetSocketAddress getAddress();
         @Nullable Socket getSocket();
 
-        boolean isKeepAlive();
+        void connect() throws IOException;
+        boolean isConnected();
 
-        @NotNull HttpRequest write(@NotNull HttpResponse response) throws IOException, SerializationException;
+        boolean isKeepAlive();
+        boolean isSecure();
+        boolean isAnonymous();
+
+        @NotNull CompletableFuture<HttpResponse> write(@NotNull HttpRequest request) throws IOException, SerializationException;
 
     }
 
