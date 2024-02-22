@@ -1,33 +1,17 @@
 package codes.laivy.proxy.http.impl;
 
-import codes.laivy.proxy.http.core.HttpAuthorization;
 import codes.laivy.proxy.http.HttpProxy;
 import codes.laivy.proxy.http.connection.HttpProxyClient;
-import codes.laivy.proxy.http.core.SecureHttpRequest;
-import codes.laivy.proxy.http.utils.HttpSerializers;
-import codes.laivy.proxy.http.utils.HttpUtils;
-import io.netty.util.concurrent.ThreadPerTaskExecutor;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.message.BasicClassicHttpRequest;
-import org.apache.hc.core5.http.message.BasicHttpRequest;
-import org.jetbrains.annotations.ApiStatus;
+import codes.laivy.proxy.http.core.HttpAuthorization;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.net.*;
-import java.nio.ByteBuffer;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static codes.laivy.proxy.http.utils.HttpSerializers.getHttpResponse;
 
 public class HttpProxyImpl extends HttpProxy {
 
@@ -70,79 +54,6 @@ public class HttpProxyImpl extends HttpProxy {
         return server;
     }
 
-    // todo: remove this
-    public @NotNull HttpResponse request(@NotNull HttpProxyClient client, @NotNull HttpRequest clientRequest) throws IOException, HttpException {
-        // Create clone request
-        @NotNull HttpRequest request = clientRequest;
-
-        if (!(clientRequest instanceof SecureHttpRequest)) {
-            try {
-                @NotNull URI uri = clientRequest.getUri();
-
-                if (clientRequest instanceof HttpEntityContainer) {
-                    request = new BasicClassicHttpRequest(clientRequest.getMethod(), uri.getPath());
-                    ((BasicClassicHttpRequest) request).setEntity(((HttpEntityContainer) clientRequest).getEntity());
-                } else {
-                    request = new BasicHttpRequest(clientRequest.getMethod(), uri.getPath());
-                }
-
-                request.setVersion(clientRequest.getVersion());
-
-                for (@NotNull Header header : clientRequest.getHeaders()) {
-                    request.addHeader(header);
-                }
-
-                // todo: last address
-                request.setHeader("Host", HttpUtils.getAddress(null, clientRequest).getHostName());
-                if (!request.containsHeader("User-Agent")) {
-                    request.addHeader("User-Agent", "java-" + System.getProperty("java.version"));
-                } if (!request.containsHeader("Connection")) {
-                    request.addHeader("Connection", "close");
-                }
-            } catch (@NotNull Throwable throwable) {
-                throw new HttpException("cannot create clone request", throwable);
-            }
-        }
-
-        // Request
-        try (@NotNull SocketChannel channel = SocketChannel.open()) {
-            // todo: last address
-            @NotNull InetSocketAddress address = HttpUtils.getAddress(null, clientRequest);
-            System.out.println(address + " - " + client.getAddress());
-            channel.bind(new InetSocketAddress(address().getAddress(), 0));
-            channel.connect(address);
-
-            try {
-                // Send website request
-                channel.write(HttpSerializers.getHttpRequest().serialize(request));
-                System.out.println(": Send: '" + new String(HttpSerializers.getHttpRequest().serialize(request).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
-            } catch (@NotNull Throwable throwable) {
-                throw new HttpException("cannot write http request to destination", throwable);
-            }
-
-            try {
-                // Read request
-                @NotNull ByteBuffer readBuffer = ByteBuffer.allocate(1024);
-                @NotNull StringBuilder stringBuilder = new StringBuilder();
-
-                while (channel.read(readBuffer) > 0) {
-                    readBuffer.flip();
-                    stringBuilder.append(StandardCharsets.UTF_8.decode(readBuffer));
-                    readBuffer.clear();
-                }
-
-                System.out.println(": Read: '" + stringBuilder.toString().replaceAll("\r", "").replaceAll("\n", " ") + "'");
-
-                @NotNull ByteBuffer buffer = ByteBuffer.wrap(stringBuilder.toString().getBytes(StandardCharsets.UTF_8));
-                return getHttpResponse().deserialize(buffer);
-            } catch (@NotNull Throwable throwable) {
-                throw new HttpException("cannot read http response", throwable);
-            }
-        } catch (URISyntaxException e) {
-            throw new HttpException("cannot read uri", e);
-        }
-    }
-
     // Loaders
 
     @Override
@@ -175,6 +86,14 @@ public class HttpProxyImpl extends HttpProxy {
 
         if ((server == null || !server.isBound()) || getSelector() == null || this.thread == null) {
             return false;
+        }
+
+        // Close clients
+        for (@NotNull HttpProxyClient client : getClients()) {
+            try {
+                client.close();
+            } catch (@NotNull Throwable ignore) {
+            }
         }
 
         this.thread.interrupt();
