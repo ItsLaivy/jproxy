@@ -1,7 +1,6 @@
 package codes.laivy.proxy.http.core;
 
 import codes.laivy.proxy.http.connection.HttpProxyClient;
-import codes.laivy.proxy.http.utils.HttpSerializers;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.HttpResponse;

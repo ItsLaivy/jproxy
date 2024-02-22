@@ -1,6 +1,5 @@
 package codes.laivy.proxy.http.utils;
 
-import codes.laivy.proxy.http.core.SecureHttpRequest;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.message.BasicHttpResponse;
 import org.jetbrains.annotations.NotNull;
@@ -9,9 +8,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
