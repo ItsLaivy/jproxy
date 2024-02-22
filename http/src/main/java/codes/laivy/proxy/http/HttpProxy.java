@@ -4,10 +4,6 @@ import codes.laivy.proxy.ProxyServer;
 import codes.laivy.proxy.http.connection.HttpProxyClient;
 import codes.laivy.proxy.http.core.HttpAuthorization;
 import codes.laivy.proxy.http.impl.HttpProxyImpl;
-import org.apache.hc.core5.http.HttpException;
-import org.apache.hc.core5.http.HttpRequest;
-import org.apache.hc.core5.http.HttpResponse;
-import org.jetbrains.annotations.Blocking;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,22 +46,6 @@ public abstract class HttpProxy extends ProxyServer implements AutoCloseable {
     public @Nullable HttpAuthorization getAuthentication() {
         return this.authorization;
     }
-
-    /**
-     * This method is responsible for making an HTTP request directly using the proxy, this method does not check
-     * the authentication of {@link #getAuthentication()}.
-     *
-     * @since 1.0-SNAPSHOT
-     * @author Daniel Richard (Laivy)
-     *
-     * @param request the HTTP request to be sent
-     * @param client the HTTP client trying to realize the request
-     * @return the HTTP response received from the server
-     * @throws IOException if there is an error in the socket connection or the input/output streams
-     * @throws HttpException if there is an error in the request or response serialization or parsing
-     */
-    @Blocking
-    public abstract @NotNull HttpResponse request(@NotNull HttpProxyClient client, @NotNull HttpRequest request) throws IOException, HttpException;
 
     // Loaders
 
