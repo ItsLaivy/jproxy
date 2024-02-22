@@ -72,7 +72,7 @@ public final class HttpUtils {
     }
 
     /**
-     * Creates a response with the status code 400 (Client Error) and a message indicating that the proxy failed to process the client request
+     * Creates a response with the status code 400 (Client Error/Bad Request) and a message indicating that the proxy failed to process the client request
      * @return an HTTP response object with the 400 status code and a message
      */
     public static @NotNull HttpResponse clientErrorResponse(@NotNull ProtocolVersion version, @NotNull String message) {
@@ -80,31 +80,6 @@ public final class HttpUtils {
         response.setVersion(version);
 
         return response;
-    }
-
-    public static @NotNull InetSocketAddress getAddress(@Nullable InetSocketAddress previous, @NotNull HttpRequest request) throws URISyntaxException {
-        if (request instanceof SecureHttpRequest) {
-            if (previous == null) {
-                throw new IllegalArgumentException("the previous address cannot be null on a secure http request");
-            }
-
-            System.out.println("Previous: '" + previous + "'");
-            return previous;
-        } else {
-            @NotNull String path = request.getUri().toString();
-
-            if (path.startsWith("/")) {
-                if (previous == null) {
-                    throw new IllegalArgumentException("invalid path destination without a previous valid address");
-                } else {
-                    @NotNull URI uri = new URI(null, null, previous.getHostName(), previous.getPort(), path, null, null);
-                    return new InetSocketAddress(uri.getHost(), uri.getPort());
-                }
-            } else {
-                @NotNull URI uri = new URI(path);
-                return new InetSocketAddress(uri.getHost(), uri.getPort() == -1 ? 80 : uri.getPort());
-            }
-        }
     }
 
 }
