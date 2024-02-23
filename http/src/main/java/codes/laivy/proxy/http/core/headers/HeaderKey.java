@@ -63,7 +63,6 @@ public final class HeaderKey {
     /**
      * @see <a href="https://regexr.com/7sft5">RegExr Tests</a>
      * @apiNote Last change: 23/02/2024 | 16:36 (GMT-3)
-     * @apiNote This regex has some syntax issues that should be fixed later
      */
     static @NotNull HeaderKey ACCEPT_POST = HeaderKey.create("Accept-Post", Pattern.compile("^(?i)([a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(, *)?)+$"));
 
@@ -71,21 +70,26 @@ public final class HeaderKey {
 
     /**
      * @see <a href="https://regexr.com/7sftn">RegExr Tests</a>
-     * @apiNote Last change: 23/02/2024 | 16:49 (GMT-3)
+     * @apiNote Last change: 23/02/2024 | 19:38 (GMT-3)
      */
-    static @NotNull HeaderKey ALLOW = HeaderKey.create("Allow", Pattern.compile("^(?i)(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)(, ?(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS))*?$"));
+    static @NotNull HeaderKey ALLOW = HeaderKey.create("Allow", Pattern.compile("^(?i)(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)(,[ ]?(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT))*?$"));
 
     static @NotNull HeaderKey AUTHORIZATION = HeaderKey.create("Authorization");
-    static @NotNull HeaderKey CONNECTION = HeaderKey.create("Connection", Pattern.compile("^(?i)(close|keep-alive)$"));
+    static @NotNull HeaderKey CONNECTION = HeaderKey.create("Connection", Pattern.compile("^(?i)(close|keep-alive|upgrade)$"));
 
     /**
      * @see <a href="https://regexr.com/7sfu0">RegExr Tests</a>
-     * @apiNote Last change: 23/02/2024 | 17:07 (GMT-3)
-     * @apiNote This regex has some syntax issues that should be fixed later
+     * @apiNote Last change: 23/02/2024 | 19:06 (GMT-3)
      */
-    static @NotNull HeaderKey CONTENT_TYPE = HeaderKey.create("Content-Type", Pattern.compile("^[a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(; ?(boundary=[a-zA-Z0-9-]+|charset=[a-zA-Z0-9-]+)(, *)?)+$"));
+    static @NotNull HeaderKey CONTENT_TYPE = HeaderKey.create("Content-Type", Pattern.compile("^[a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(?:; ?(boundary=[a-zA-Z0-9-]+|charset=[a-zA-Z0-9-]+))?(?:; ?(boundary=[a-zA-Z0-9-]+|charset=[a-zA-Z0-9-]+))?$"));
 
     static @NotNull HeaderKey HOST = HeaderKey.create("Host", Pattern.compile("^([a-zA-Z0-9.-]+)(:([0-9]+))?$"));
+
+    /**
+     * @see <a href="https://regexr.com/7sg4c">RegExr Tests</a>
+     * @apiNote Last change: 23/02/2024 | 19:23 (GMT-3)
+     */
+    static @NotNull HeaderKey UPGRADE = HeaderKey.create("Upgrade", Pattern.compile("^[a-zA-Z-_]+(?:/[a-zA-Z0-9-_.@]+)?(?:,\\s?[a-zA-Z-_]+(?:/[a-zA-Z0-9-_.@]+)?)*$"));
 
     // todo: add more provided headers
 

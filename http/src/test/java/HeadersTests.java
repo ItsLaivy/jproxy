@@ -7,7 +7,7 @@ public final class HeadersTests {
 
     @Test
     public void accept() {
-        @NotNull HeaderKey key = Headers.ACCEPT;
+        @NotNull HeaderKey key = HeaderKey;
         assert key.getPattern() != null;
 
         @NotNull String[] texts = new String[] {
@@ -18,7 +18,7 @@ public final class HeadersTests {
                 "audio/wav; q=0.5, audio/webm; q=0.4",
                 "video/ogg; q=0.3, video/webm; q=0.2",
                 "application/xhtml+xml; q=0.1, application/rss+xml; q=0.05",
-                "application/xhtml+xml; q=0.1, application/rss+xml; q=0.05",
+                "APPLICATION/xhtml+xml; q=0.1, application/rss+xml; q=0.05", // Uppercase
                 "text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8",
                 "*/*",
                 "image/*",
