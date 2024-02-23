@@ -74,7 +74,39 @@ public class ContentType {
 
     protected static @NotNull ContentType[] initialized = new ContentType[0];
 
-    public static @NotNull ContentType APPLICATION_JSON = create("application/json", StandardCharsets.UTF_8);
+    public static final @NotNull ContentType APPLICATION_ATOM_XML = create("application/atom+xml", StandardCharsets.UTF_8);
+    public static final @NotNull ContentType APPLICATION_FORM_URLENCODED = create("application/x-www-form-urlencoded", StandardCharsets.ISO_8859_1);
+    public static final @NotNull ContentType APPLICATION_JSON = create("application/json", StandardCharsets.UTF_8);
+
+    public static final @NotNull ContentType APPLICATION_NDJSON = create("application/x-ndjson", StandardCharsets.UTF_8);
+    public static final @NotNull ContentType APPLICATION_OCTET_STREAM = create("application/octet-stream", null);
+
+    public static final @NotNull ContentType APPLICATION_PDF = create("application/pdf", StandardCharsets.UTF_8);
+
+    public static final @NotNull ContentType APPLICATION_SOAP_XML = create("application/soap+xml", StandardCharsets.UTF_8);
+    public static final @NotNull ContentType APPLICATION_SVG_XML = create("application/svg+xml", StandardCharsets.UTF_8);
+    public static final @NotNull ContentType APPLICATION_XHTML_XML = create("application/xhtml+xml", StandardCharsets.UTF_8);
+    public static final @NotNull ContentType APPLICATION_XML = create("application/xml", StandardCharsets.UTF_8);
+
+    public static final @NotNull ContentType APPLICATION_PROBLEM_JSON = create("application/problem+json", StandardCharsets.UTF_8);
+    public static final @NotNull ContentType APPLICATION_PROBLEM_XML = create("application/problem+xml", StandardCharsets.UTF_8);
+    public static final @NotNull ContentType APPLICATION_RSS_XML = create("application/rss+xml", StandardCharsets.UTF_8);
+
+    public static final @NotNull ContentType IMAGE_BMP = create("image/bmp", null);
+    public static final @NotNull ContentType IMAGE_GIF = create("image/gif", null);
+    public static final @NotNull ContentType IMAGE_JPEG = create("image/jpeg", null);
+    public static final @NotNull ContentType IMAGE_PNG = create("image/png", null);
+    public static final @NotNull ContentType IMAGE_SVG = create("image/svg+xml", null);
+    public static final @NotNull ContentType IMAGE_TIFF = create("image/tiff", null);
+    public static final @NotNull ContentType IMAGE_WEBP = create("image/webp", null);
+
+    public static final @NotNull ContentType TEXT_HTML = create("text/html", StandardCharsets.ISO_8859_1);
+    public static final @NotNull ContentType TEXT_MARKDOWN = create("text/markdown", StandardCharsets.UTF_8);
+    public static final @NotNull ContentType TEXT_PLAIN = create("text/plain", StandardCharsets.ISO_8859_1);
+    public static final @NotNull ContentType TEXT_XML = create("text/xml", StandardCharsets.UTF_8);
+    public static final @NotNull ContentType TEXT_EVENT_STREAM = create("text/event-stream", StandardCharsets.UTF_8);
+
+    public static final @NotNull ContentType WILDCARD = create("*/*", null);
 
     static {
         // Initialize all provided content types
@@ -125,6 +157,11 @@ public class ContentType {
     @Contract(pure = true)
     public final @NotNull NameValuePair[] getParameters() {
         return parameters;
+    }
+
+    @Contract(pure = true)
+    public final @Nullable Charset getCharset(@Nullable Charset absent) {
+        return charset == null ? absent : charset;
     }
 
     // Implementations
