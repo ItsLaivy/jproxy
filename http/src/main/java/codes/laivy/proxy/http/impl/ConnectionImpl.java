@@ -80,8 +80,6 @@ public class ConnectionImpl implements HttpProxyClient.Connection {
         channel.bind(new InetSocketAddress(getClient().getProxy().address().getHostName(), 0));
         channel.connect(getAddress());
 
-        System.out.println("Address: '" + getAddress().getHostName() + "' - '" + getAddress().getPort() + "' - '" + getAddress().isUnresolved() + "'");
-
         channel.finishConnect();
 
         new Thread(() -> {

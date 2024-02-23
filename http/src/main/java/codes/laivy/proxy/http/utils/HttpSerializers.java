@@ -1,8 +1,6 @@
 package codes.laivy.proxy.http.utils;
 
 import codes.laivy.proxy.exception.SerializationException;
-import codes.laivy.proxy.http.core.SecureHttpRequest;
-import codes.laivy.proxy.http.core.SecureHttpResponse;
 import codes.laivy.proxy.utils.Serializer;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.io.entity.StringEntity;
@@ -259,6 +257,7 @@ public final class HttpSerializers {
         return version;
     }
     public static @NotNull Serializer<MessageHeaders> getHeaders() {
+        HttpResponse
         return headers;
     }
 

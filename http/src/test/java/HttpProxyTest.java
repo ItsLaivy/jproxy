@@ -21,8 +21,8 @@ import java.nio.ByteBuffer;
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public final class HttpProxyTest {
 
-    private static final @NotNull InetSocketAddress PROXY_LOCAL_ADDRESS = new InetSocketAddress("localhost", 5555);
-    private static final @NotNull InetSocketAddress PROXY_EXTERNAL_ADDRESS = new InetSocketAddress("0.0.0.0", 5556);
+    private static final @NotNull InetSocketAddress PROXY_LOCAL_ADDRESS = new InetSocketAddress("localhost", 55525);
+    private static final @NotNull InetSocketAddress PROXY_EXTERNAL_ADDRESS = new InetSocketAddress("0.0.0.0", 55256);
 
     @Test
     public void connectReconnect() throws Throwable {

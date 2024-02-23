@@ -12,7 +12,7 @@ public interface Message extends Closeable {
 
     long size();
 
-    static @NotNull Message create(@NotNull String message) {
+    static @NotNull StringMessage create(@NotNull String message) {
         byte[] bytes = message.getBytes();
         return new StringMessage(bytes);
     }
