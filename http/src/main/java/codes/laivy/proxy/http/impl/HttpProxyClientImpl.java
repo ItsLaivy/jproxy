@@ -238,8 +238,8 @@ public class HttpProxyClientImpl implements HttpProxyClient {
 
         CompletableFuture.runAsync(() -> {
             try {
-                if (!(request instanceof SecureHttpRequest) && !request.containsHeader("Host")) {
-                    future.complete(HttpUtils.clientErrorResponse(request.getVersion(), "Bad Request - Missing 'Host' header"));
+                if (!(request instanceof SecureHttpRequest) && !request.containsHeader(HttpHeaders.HOST)) {
+                    future.complete(HttpUtils.clientErrorResponse(request.getVersion(), "Bad Request - Missing '" + HttpHeaders.HOST + "' header"));
                     return;
                 }
 
