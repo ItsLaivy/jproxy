@@ -10,10 +10,7 @@ import org.apache.hc.core5.http.message.BasicHttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -21,6 +18,7 @@ import java.nio.ByteBuffer;
 
 // todo: exclusive http proxy server for tests that verify headers and data
 // todo: tests with JSoup#newSession
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public final class HttpProxyTest {
 
     private static final @NotNull InetSocketAddress PROXY_LOCAL_ADDRESS = new InetSocketAddress("localhost", 5555);

@@ -91,7 +91,7 @@ public final class HttpSerializers {
                 if (content.length > 1) { // Request with body
                     @NotNull String body = content[1];
 
-                    clone = new BasicClassicHttpRequest(method, uri);
+                    clone = new BasicClassicHttpRequest(method, authority.getHostName());
                     ((BasicClassicHttpRequest) clone).setEntity(new StringEntity(body, HttpUtils.getContentType(headers)));
                 } else { // Request without body
                     clone = new BasicHttpRequest(method, uri);
