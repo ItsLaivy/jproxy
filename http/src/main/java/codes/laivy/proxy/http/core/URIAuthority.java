@@ -3,7 +3,10 @@ package codes.laivy.proxy.http.core;
 import codes.laivy.proxy.http.core.Credentials.Basic;
 import org.jetbrains.annotations.*;
 
-import java.net.*;
+import java.net.IDN;
+import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.util.Objects;
 import java.util.regex.Matcher;
