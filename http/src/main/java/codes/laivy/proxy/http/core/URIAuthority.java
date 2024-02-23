@@ -5,6 +5,7 @@ import org.jetbrains.annotations.*;
 
 import java.net.*;
 import java.text.ParseException;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -101,6 +102,18 @@ public final class URIAuthority {
     @Override
     public @NotNull String toString() {
         return super.toString();
+    }
+
+    @Override
+    public boolean equals(@Nullable Object object) {
+        if (this == object) return true;
+        if (!(object instanceof URIAuthority)) return false;
+        URIAuthority authority = (URIAuthority) object;
+        return Objects.equals(getUserInfo(), authority.getUserInfo()) && Objects.equals(getAddress(), authority.getAddress());
+    }
+    @Override
+    public int hashCode() {
+        return Objects.hash(getUserInfo(), getAddress());
     }
 
 }
