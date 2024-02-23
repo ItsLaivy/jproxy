@@ -37,6 +37,10 @@ public final class HttpSerializers {
                 throw new SerializationException("cannot serialize secure http request", throwable);
             }
 
+            if (request.getVersion() == null) {
+                throw new SerializationException("the request version cannot be null");
+            }
+
             try {
                 @NotNull String authority = request.getAuthority() != null ? request.getAuthority().toString() : request.getUri().toString();
 
@@ -63,10 +67,17 @@ public final class HttpSerializers {
                 return new SecureHttpRequest(bytes);
             }
 
-            @NotNull String[] content = new String(bytes, StandardCharsets.UTF_8).replaceAll("\r", "").split("\n\n", 2);
+            @NotNull String total = new String(bytes, StandardCharsets.UTF_8);
+            @NotNull String[] content = total.replaceAll("\r", "").split("\n\n", 2);
             @NotNull String[] parts = content[0].replaceAll("\n", " ").split(" ");
-            @NotNull MessageHeaders headers = getHeaders().deserialize(ByteBuffer.wrap(content[0].substring(Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length()).getBytes()));
+            @NotNull MessageHeaders headers;
 
+            // Headers
+            int headerSubstring = Arrays.stream(parts).limit(3).map(string -> string + " ").collect(Collectors.joining()).length();
+            if (headerSubstring > content[0].length()) headers = new HeaderGroup();
+            else headers = getHeaders().deserialize(ByteBuffer.wrap(content[0].substring(headerSubstring).getBytes()));
+
+            // Clone
             @NotNull HttpRequest clone;
 
             try {
@@ -112,6 +123,10 @@ public final class HttpSerializers {
                 throw new SerializationException("cannot serialize secure http response", throwable);
             }
 
+            if (response.getVersion() == null) {
+                throw new SerializationException("the response version cannot be null");
+            }
+
             @NotNull StringBuilder builder = new StringBuilder((response.getVersion() != null ? response.getVersion() : HttpVersion.DEFAULT.format()) + " " + response.getCode() + " " + response.getReasonPhrase() + "\r\n");
             builder.append(new String(getHeaders().serialize(response).array(), StandardCharsets.UTF_8));
             builder.append("\r\n");
@@ -136,7 +151,7 @@ public final class HttpSerializers {
                 return new SecureHttpResponse(bytes);
             }
 
-            @NotNull String[] content = new String(bytes, StandardCharsets.UTF_8).split("\n\n", 2);
+            @NotNull String[] content = new String(bytes, StandardCharsets.UTF_8).split("\n\r\n", 2);
             @NotNull String[] parts = content[0].replaceAll("\r", "").replaceAll("\n", " ").split(" ");
             @NotNull MessageHeaders headers = getHeaders().deserialize(ByteBuffer.wrap(content[0].substring(content[0].split("\r")[0].length()).getBytes()));
 
