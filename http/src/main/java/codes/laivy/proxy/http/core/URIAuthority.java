@@ -19,7 +19,7 @@ public final class URIAuthority {
     public static final int DEFAULT_HTTPS_PORT = 443;
 
     public static @NotNull URIAuthority parse(@NotNull String uri) throws URISyntaxException, UnknownHostException {
-        @Nullable Basic userInfo;
+        @Nullable Basic userInfo = null;
         @NotNull String hostName;
         int port;
 
@@ -30,7 +30,8 @@ public final class URIAuthority {
             @NotNull String scheme = matcher.group(1);
 
             try {
-                userInfo = Basic.parse(matcher.group(3));
+                @Nullable String temp = matcher.group(3);
+                if (temp != null) userInfo = Basic.parse(temp);
             } catch (@NotNull ParseException throwable) {
                 throw new URISyntaxException(uri, throwable.getMessage(), matcher.start(3));
             }
