@@ -32,13 +32,16 @@ public interface Credentials extends CharSequence, Flushable {
         // Static initializers
 
         public static @NotNull Basic parse(@NotNull String basic) throws ParseException {
-            @NotNull String[] split = basic.split("(?<=:)(?!.*:)");
+            int lastIndex = basic.lastIndexOf(":");
 
-            if (split.length == 2) {
-                return new Basic(split[0], split[1].toCharArray());
-            } else {
+            if (lastIndex == -1) {
                 throw new ParseException("basic authorization missing ':' separator", 0);
             }
+
+            @NotNull String prefix = basic.substring(0, lastIndex);
+            @NotNull String suffix = basic.substring(lastIndex + 1);
+
+            return new Basic(prefix, suffix.toCharArray());
         }
 
         // Object
