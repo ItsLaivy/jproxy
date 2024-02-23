@@ -31,10 +31,10 @@ public final class URIAuthorityTests {
     public void parser() throws UnknownHostException, URISyntaxException {
         @NotNull Meta[] metas = new Meta[] {
                 new Meta("https://localhost/", null, "localhost", URIAuthority.DEFAULT_HTTPS_PORT),
-                new Meta("https://user:pass@localhost/", new Basic("user", "pass".toCharArray()), "localhost", URIAuthority.DEFAULT_HTTPS_PORT),
-                new Meta("https://user:pass@localhost:555/", new Basic("user", "pass".toCharArray()), "localhost", 555),
-                new Meta("https://user:pass@laivy.cloud:555/", new Basic("user", "pass".toCharArray()), "laivy.cloud", 555),
-                new Meta("https://user:pass@laivy.cloud:555/test.php", new Basic("user", "pass".toCharArray()), "laivy.cloud", 555),
+                new Meta("https://user:pass@localhost/", new Basic("user", "pass"), "localhost", URIAuthority.DEFAULT_HTTPS_PORT),
+                new Meta("https://user:pass@localhost:555/", new Basic("user", "pass"), "localhost", 555),
+                new Meta("https://user:pass@laivy.cloud:555/", new Basic("user", "pass"), "laivy.cloud", 555),
+                new Meta("https://user:pass@laivy.cloud:555/test.php", new Basic("user", "pass"), "laivy.cloud", 555),
                 new Meta("localhost:232", null, "localhost", 232),
                 new Meta("localhost:232/", null, "localhost", 232),
                 new Meta("https://localhost:444/test.php", null, "localhost", 444),

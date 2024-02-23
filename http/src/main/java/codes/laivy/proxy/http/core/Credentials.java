@@ -53,6 +53,10 @@ public interface Credentials extends CharSequence, Flushable {
             this.username = username;
             this.password = password;
         }
+        public Basic(@NotNull String username, @NotNull String password) {
+            this.username = username;
+            this.password = password.toCharArray();
+        }
 
         // Getters
 
