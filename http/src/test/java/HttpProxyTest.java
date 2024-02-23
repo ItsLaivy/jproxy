@@ -1,19 +1,26 @@
 import codes.laivy.proxy.http.HttpProxy;
 import codes.laivy.proxy.http.core.HttpAuthorization;
-import org.apache.hc.core5.http.HttpHeaders;
-import org.apache.hc.core5.http.HttpStatus;
+import codes.laivy.proxy.http.utils.HttpSerializers;
+import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.http.message.BasicClassicHttpRequest;
+import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
+import org.apache.hc.core5.http.message.BasicHttpRequest;
+import org.apache.hc.core5.http.message.BasicHttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 
 // todo: exclusive http proxy server for tests that verify headers and data
 // todo: tests with JSoup#newSession
-// todo: tests with serializers
 public final class HttpProxyTest {
 
     private static final @NotNull InetSocketAddress PROXY_LOCAL_ADDRESS = new InetSocketAddress("localhost", 5555);
@@ -35,6 +42,114 @@ public final class HttpProxyTest {
     }
 
     @Nested
+    @Order(0)
+    public final class Serializers {
+        @Nested
+        public final class Request {
+            @Test
+            public void withoutBodyAndRequests() throws Throwable {
+                for (@NotNull Connection.Method method : Connection.Method.values()) {
+                    try {
+                        @NotNull HttpRequest basic = new BasicHttpRequest(method.name(), new HttpHost(InetAddress.getByName("laivy.cloud"), 443), "/");
+                        basic.setVersion(HttpVersion.HTTP_1_1);
+
+                        @NotNull ByteBuffer serialized = HttpSerializers.getHttpRequest().serialize(basic);
+                        @NotNull HttpRequest deserialized = HttpSerializers.getHttpRequest().deserialize(serialized);
+
+                        Assertions.assertEquals(new String(serialized.array()), new String(HttpSerializers.getHttpRequest().serialize(deserialized).array()));
+                    } catch (@NotNull Throwable throwable) {
+                        throw new Throwable(method.name(), throwable);
+                    }
+                }
+            }
+            @Test
+            public void withoutBody() throws Throwable {
+                for (@NotNull Connection.Method method : Connection.Method.values()) {
+                    try {
+                        @NotNull HttpRequest basic = new BasicHttpRequest(method.name(), new HttpHost(InetAddress.getByName("laivy.cloud"), 443), "/");
+                        basic.setVersion(HttpVersion.HTTP_1_1);
+
+                        basic.addHeader(HttpHeaders.HOST, "laivy.cloud:443");
+                        basic.addHeader(HttpHeaders.PROXY_AUTHORIZATION, "Bearer Test");
+                        basic.addHeader(HttpHeaders.CONNECTION, "keep-alive");
+
+                        @NotNull ByteBuffer serialized = HttpSerializers.getHttpRequest().serialize(basic);
+                        @NotNull HttpRequest deserialized = HttpSerializers.getHttpRequest().deserialize(serialized);
+
+                        Assertions.assertEquals(new String(serialized.array()), new String(HttpSerializers.getHttpRequest().serialize(deserialized).array()));
+                    } catch (@NotNull Throwable throwable) {
+                        throw new Throwable(method.name(), throwable);
+                    }
+                }
+            }
+            @Test
+            public void withBody() throws Throwable {
+                for (@NotNull Connection.Method method : Connection.Method.values()) {
+                    try {
+                        @NotNull BasicClassicHttpRequest basic = new BasicClassicHttpRequest(method.name(), new HttpHost(InetAddress.getByName("laivy.cloud"), 443), "/");
+                        basic.setVersion(HttpVersion.HTTP_1_1);
+                        basic.setEntity(new StringEntity("Cool"));
+
+                        basic.addHeader(HttpHeaders.HOST, "laivy.cloud:443");
+                        basic.addHeader(HttpHeaders.PROXY_AUTHORIZATION, "Bearer Test");
+                        basic.addHeader(HttpHeaders.CONNECTION, "keep-alive");
+
+                        @NotNull ByteBuffer serialized = HttpSerializers.getHttpRequest().serialize(basic);
+                        @NotNull HttpRequest deserialized = HttpSerializers.getHttpRequest().deserialize(serialized);
+
+                        Assertions.assertEquals(new String(serialized.array()), new String(HttpSerializers.getHttpRequest().serialize(deserialized).array()));
+                    } catch (@NotNull Throwable throwable) {
+                        throw new Throwable(method.name(), throwable);
+                    }
+                }
+            }
+        }
+        @Nested
+        public final class Response {
+            @Test
+            public void withoutBodyAndRequests() throws Throwable {
+                @NotNull HttpResponse basic = new BasicHttpResponse(200, "OK");
+                basic.setVersion(HttpVersion.HTTP_1_1);
+
+                @NotNull ByteBuffer serialized = HttpSerializers.getHttpResponse().serialize(basic);
+                @NotNull HttpResponse deserialized = HttpSerializers.getHttpResponse().deserialize(serialized);
+
+                Assertions.assertEquals(new String(serialized.array()), new String(HttpSerializers.getHttpResponse().serialize(deserialized).array()));
+            }
+            @Test
+            public void withoutBody() throws Throwable {
+                @NotNull HttpResponse basic = new BasicHttpResponse(200, "OK");
+                basic.setVersion(HttpVersion.HTTP_1_1);
+
+                basic.addHeader(HttpHeaders.HOST, "laivy.cloud:443");
+                basic.addHeader(HttpHeaders.PROXY_AUTHORIZATION, "Bearer Test");
+                basic.addHeader(HttpHeaders.CONNECTION, "keep-alive");
+
+                @NotNull ByteBuffer serialized = HttpSerializers.getHttpResponse().serialize(basic);
+                @NotNull HttpResponse deserialized = HttpSerializers.getHttpResponse().deserialize(serialized);
+
+                Assertions.assertEquals(new String(serialized.array()), new String(HttpSerializers.getHttpResponse().serialize(deserialized).array()));
+            }
+            @Test
+            public void withBody() throws Throwable {
+                @NotNull BasicClassicHttpResponse basic = new BasicClassicHttpResponse(200, "OK");
+                basic.setVersion(HttpVersion.HTTP_1_1);
+                basic.setEntity(new StringEntity("Cool"));
+
+                basic.addHeader(HttpHeaders.HOST, "laivy.cloud:443");
+                basic.addHeader(HttpHeaders.PROXY_AUTHORIZATION, "Bearer Test");
+                basic.addHeader(HttpHeaders.CONNECTION, "keep-alive");
+
+                @NotNull ByteBuffer serialized = HttpSerializers.getHttpResponse().serialize(basic);
+                @NotNull HttpResponse deserialized = HttpSerializers.getHttpResponse().deserialize(serialized);
+
+                Assertions.assertEquals(new String(serialized.array()), new String(HttpSerializers.getHttpResponse().serialize(deserialized).array()));
+            }
+        }
+    }
+
+    @Nested
+    @Order(1)
     public final class Insecure {
         @Test
         public void get() throws Throwable {
@@ -223,6 +338,7 @@ public final class HttpProxyTest {
     }
 
     @Nested
+    @Order(2)
     public final class Secure {
         @Test
         public void get() throws Throwable {
