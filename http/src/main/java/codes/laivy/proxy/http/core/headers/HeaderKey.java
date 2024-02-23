@@ -24,19 +24,59 @@ public final class HeaderKey {
 
     /**
      * @see <a href="regexr.com/7sfol">RegExr Tests</a>
-     * @apiNote Last change: 23/02/2024 | 15:47 (GMT-3)
+     * @apiNote Last change: 23/02/2024 | 16:33 (GMT-3)
+     * @apiNote This regex has some syntax issues that should be fixed later
      */
-    @NotNull HeaderKey ACCEPT = HeaderKey.create("Accept", Pattern.compile("^([a-zA-Z0-9+.*]+/[a-zA-Z0-9+.*]+(; ?q=[0-1](\\.[0-9]{1,2})?)?(, *)?)+$"));
+    @NotNull HeaderKey ACCEPT = HeaderKey.create("Accept", Pattern.compile("^([a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(; ?q=(0(\\.\\d{1,2})?|1(\\.0{1,2})?))?(, *)?)+$"));
 
     @NotNull HeaderKey ACCEPT_CH = HeaderKey.create("Accept-CH");
     @NotNull HeaderKey ACCEPT_CH_LIFETIME = HeaderKey.create("Accept-CH-Lifetime", Pattern.compile("^\\d+$"));
 
     /**
      * @see <a href="regexr.com/7sfpg">RegExr Tests</a>
-     * @apiNote Last change: 23/02/2024 | 15:58 (GMT-3)
+     * @apiNote Last change: 23/02/2024 | 16:19 (GMT-3)
+     * @apiNote This regex has some syntax issues that should be fixed later
      */
-    @NotNull HeaderKey ACCEPT_CHARSET = HeaderKey.create("Accept-Charset", Pattern.compile("^([\\w\\-]+(; ?q=[0-1]\\.?[0-9](\\.[0-9]{1,2})?)?(, *)?)+$"));
-    
+    @NotNull HeaderKey ACCEPT_CHARSET = HeaderKey.create("Accept-Charset", Pattern.compile("^([\\w\\-]+(; ?q=(0(\\.\\d{1,2})?|1(\\.0{1,2})?))?(, *)?)+$"));
+
+    /**
+     * @see <a href="regexr.com/7sfqn">RegExr Tests</a>
+     * @apiNote Last change: 23/02/2024 | 16:17 (GMT-3)
+     * @apiNote This regex has some syntax issues that should be fixed later
+     */
+    @NotNull HeaderKey ACCEPT_ENCODING = HeaderKey.create("Accept-Encoding", Pattern.compile("^([\\w\\-*]+(; ?q=(0(\\.\\d{1,2})?|1(\\.0{1,2})?))?(, *)?)+$"));
+
+    /**
+     * @see <a href="regexr.com/7sfs4">RegExr Tests</a>
+     * @apiNote Last change: 23/02/2024 | 16:23 (GMT-3)
+     * @apiNote This regex has some syntax issues that should be fixed later
+     */
+    @NotNull HeaderKey ACCEPT_LANGUAGE = HeaderKey.create("Accept-Language", Pattern.compile("^([\\w\\-*]+(; ?q=(0(\\.\\d{1,2})?|1(\\.0{1,2})?))?(, *)?)+$"));
+
+    /**
+     * @see <a href="regexr.com/7sfsd">RegExr Tests</a>
+     * @apiNote Last change: 23/02/2024 | 16:30 (GMT-3)
+     * @apiNote This regex has some syntax issues that should be fixed later
+     */
+    @NotNull HeaderKey ACCEPT_PATCH = HeaderKey.create("Accept-Patch", Pattern.compile("^([a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(; ?charset=([\\w\\-*]+?(, *)?))?(, *)?)+$"));
+
+    /**
+     * @see <a href="regexr.com/7sft5">RegExr Tests</a>
+     * @apiNote Last change: 23/02/2024 | 16:36 (GMT-3)
+     * @apiNote This regex has some syntax issues that should be fixed later
+     */
+    @NotNull HeaderKey ACCEPT_POST = HeaderKey.create("Accept-Post", Pattern.compile("^([a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(, *)?)+$"));
+
+    @NotNull HeaderKey AGE = HeaderKey.create("Age", Pattern.compile("^\\d+$"));
+
+    /**
+     * @see <a href="regexr.com/7sftn">RegExr Tests</a>
+     * @apiNote Last change: 23/02/2024 | 16:49 (GMT-3)
+     */
+    @NotNull HeaderKey Allow = HeaderKey.create("Allow", Pattern.compile("^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)(, ?(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS))*?$"));
+
+    // fixme: Accept-Ranges Access-Control-Allow-Credentials Access-Control-Allow-Headers Access-Control-Allow-Methods Access-Control-Allow-Origin Access-Control-Expose-Headers Access-Control-Max-Age Access-Control-Request-Headers Access-Control-Request-Method
+
     // Object
 
     private final @NotNull String name;
