@@ -1,15 +1,13 @@
 package codes.laivy.proxy.http.connection;
 
 import codes.laivy.proxy.connection.ProxyClient;
-import codes.laivy.proxy.exception.SerializationException;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.HttpResponse;
-import org.jetbrains.annotations.Contract;
+import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.CompletableFuture;
 
@@ -41,17 +39,17 @@ public interface HttpProxyClient extends ProxyClient {
      * @return An HTTP request read from the proxy or null if the connection has closed.
      *
      * @throws IOException If an input or output error occurs.
-     * @throws SerializationException If an error occurs trying to serialize the request
+     * @throws ParseException If an error occurs trying to parse the request
      */
-    @Nullable HttpRequest read() throws IOException, SerializationException;
+    @Nullable HttpRequest read() throws IOException, ParseException;
 
     /**
      * Sends an HTTP response of a previous operation to the client
      *
      * @throws IOException If an input or output error occurs.
-     * @throws SerializationException If an error occurs trying to serialize the response
+     * @throws ParseException If an error occurs trying to parse the response
      */
-    void write(@NotNull HttpResponse response) throws IOException, SerializationException;
+    void write(@NotNull HttpResponse response) throws IOException, ParseException;
 
     /**
      * Creates an HTTP request to the destination proxy on behalf of the client.
@@ -59,30 +57,10 @@ public interface HttpProxyClient extends ProxyClient {
      * @return An HTTP response received from the destination by the proxy.
      *
      * @throws IOException If an input or output error occurs.
-     * @throws SerializationException If an error occurs trying to deserialize/serialize the response/request
+     * @throws ParseException If an error occurs trying to deserialize/serialize the response/request
      */
-    @NotNull CompletableFuture<HttpResponse> request(@NotNull HttpRequest request) throws IOException, SerializationException;
+    @NotNull CompletableFuture<HttpResponse> request(@NotNull HttpRequest request) throws IOException, ParseException;
 
     // Classes
-
-    interface Connection extends AutoCloseable {
-
-        @Contract(pure = true)
-        @NotNull HttpProxyClient getClient();
-
-        @Contract(pure = true)
-        @NotNull InetSocketAddress getAddress();
-        @Nullable Socket getSocket();
-
-        void connect() throws IOException;
-        boolean isConnected();
-
-        boolean isKeepAlive();
-        boolean isSecure();
-        boolean isAnonymous();
-
-        @NotNull CompletableFuture<HttpResponse> write(@NotNull HttpRequest request) throws IOException, SerializationException;
-
-    }
 
 }
