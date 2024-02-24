@@ -3,7 +3,6 @@ package codes.laivy.proxy.http.core.headers;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,6 +40,25 @@ public interface Headers extends Iterable<Header> {
                 .stream()
                 .reduce((first, second) -> second);
     }
+
+    default boolean contains(@NotNull HeaderKey key) {
+        return contains(key.getName());
+    }
+    default int count(@NotNull HeaderKey key) {
+        return count(key.getName());
+    }
+
+    default @NotNull Optional<Header> first(@NotNull HeaderKey key) {
+        return first(key.getName());
+    }
+    default @NotNull Optional<Header> last(@NotNull HeaderKey key) {
+        return last(key.getName());
+    }
+
+    default @NotNull Header @NotNull [] get(@NotNull HeaderKey key) {
+        return get(key.getName());
+    }
+
 
     interface MutableHeaders extends Headers {
 
