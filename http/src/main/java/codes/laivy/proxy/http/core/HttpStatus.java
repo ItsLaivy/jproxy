@@ -1,10 +1,16 @@
 package codes.laivy.proxy.http.core;
 
 import codes.laivy.proxy.http.core.headers.HeaderKey;
+import codes.laivy.proxy.http.core.headers.Headers;
+import codes.laivy.proxy.http.core.message.Message;
+import codes.laivy.proxy.http.core.protocol.HttpVersion;
+import codes.laivy.proxy.http.core.response.HttpResponse;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -14,6 +20,8 @@ public class HttpStatus {
 
     public static final @NotNull HttpStatus CONTINUE = new HttpStatus(100, "Continue");
     public static final @NotNull HttpStatus SWITCHING_PROTOCOLS = new HttpStatus(101, "Switching Protocols", HeaderKey.UPGRADE);
+
+    public static final @NotNull HttpStatus BAD_REQUEST = new HttpStatus(400, "Bad Request");
 
     // Object
 
@@ -62,6 +70,13 @@ public class HttpStatus {
     @Contract(pure = true)
     public final @NotNull Category getCategory() {
         return Category.getCategory(this);
+    }
+
+    public final @NotNull HttpResponse createResponse(@NotNull HttpVersion version) {
+        return createResponse(version, StandardCharsets.UTF_8, null);
+    }
+    public final @NotNull HttpResponse createResponse(@NotNull HttpVersion version, @NotNull Charset charset, @Nullable Message message) {
+        return HttpResponse.create(this, version, charset, Headers.createMutable(), message);
     }
 
     // Implementations
