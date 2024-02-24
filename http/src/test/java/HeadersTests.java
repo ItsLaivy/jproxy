@@ -1,5 +1,4 @@
 import codes.laivy.proxy.http.core.headers.HeaderKey;
-import codes.laivy.proxy.http.core.headers.Headers;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
@@ -7,7 +6,7 @@ public final class HeadersTests {
 
     @Test
     public void accept() {
-        @NotNull HeaderKey key = HeaderKey;
+        @NotNull HeaderKey key = HeaderKey.ACCEPT;
         assert key.getPattern() != null;
 
         @NotNull String[] texts = new String[] {
