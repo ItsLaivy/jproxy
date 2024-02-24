@@ -83,6 +83,7 @@ public final class HeaderKey {
 
     public static @NotNull HeaderKey AUTHORIZATION = HeaderKey.create("Authorization");
     public static @NotNull HeaderKey CONNECTION = HeaderKey.create("Connection", Pattern.compile("^(?i)(close|keep-alive|upgrade)$"));
+    public static @NotNull HeaderKey PROXY_CONNECTION = HeaderKey.create("Proxy-Connection", Pattern.compile("^(?i)(close|keep-alive)$"));
 
     /**
      * @see <a href="https://regexr.com/7sfu0">RegExr Tests</a>
@@ -91,6 +92,8 @@ public final class HeaderKey {
     public static @NotNull HeaderKey CONTENT_TYPE = HeaderKey.create("Content-Type", Pattern.compile("^[a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(?:; ?(boundary=[a-zA-Z0-9-]+|charset=[a-zA-Z0-9-]+))?(?:; ?(boundary=[a-zA-Z0-9-]+|charset=[a-zA-Z0-9-]+))?$"));
 
     public static @NotNull HeaderKey HOST = HeaderKey.create("Host", Pattern.compile("^([a-zA-Z0-9.-]+)(:([0-9]+))?$"));
+    public static @NotNull HeaderKey WWW_AUTHENTICATE = HeaderKey.create("WWW-Authenticate");
+    public static @NotNull HeaderKey PROXY_AUTHENTICATE = HeaderKey.create("Proxy-Authenticate");
 
     /**
      * @see <a href="https://regexr.com/7sg4c">RegExr Tests</a>

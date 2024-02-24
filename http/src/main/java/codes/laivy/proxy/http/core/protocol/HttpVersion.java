@@ -29,6 +29,10 @@ public abstract class HttpVersion implements Closeable {
         return optional.orElseThrow(() -> new NullPointerException("cannot find the HTTP version '" + string + "'"));
     }
 
+    public static @NotNull HttpVersion HTTP1_1() {
+        return Arrays.stream(getVersions()).filter(version -> version.getMajor() == 1 && version.getMinor() == 1).findFirst().orElseThrow(NullPointerException::new);
+    }
+
     // Object
 
     private final int minor;

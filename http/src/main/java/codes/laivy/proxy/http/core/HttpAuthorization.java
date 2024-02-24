@@ -1,12 +1,12 @@
 package codes.laivy.proxy.http.core;
 
 import codes.laivy.proxy.http.connection.HttpProxyClient;
-import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
-import org.apache.hc.core5.http.HttpRequest;
-import org.apache.hc.core5.http.HttpResponse;
-import org.apache.hc.core5.http.HttpVersion;
-import org.apache.hc.core5.http.message.BasicHeader;
-import org.apache.hc.core5.http.message.BasicHttpResponse;
+import codes.laivy.proxy.http.core.Credentials.Basic;
+import codes.laivy.proxy.http.core.headers.Header;
+import codes.laivy.proxy.http.core.headers.HeaderKey;
+import codes.laivy.proxy.http.core.protocol.HttpVersion;
+import codes.laivy.proxy.http.core.request.HttpRequest;
+import codes.laivy.proxy.http.core.response.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 /**
  * The authorization class is used to allow only users who provide some degree of authentication to use the proxy
  *
+ * @author Daniel Richard (Laivy)
  * @since 1.0-SNAPSHOT
  */
 public interface HttpAuthorization {
@@ -28,31 +29,27 @@ public interface HttpAuthorization {
      *
      * @param predicate a function that checks if the token is valid
      * @return an authentication object that implements the bearer token logic
-     * @author Daniel Richard (Laivy)
      * @see <a href="https://apidog.com/articles/what-is-bearer-token/">Bearer Authorization</a>
+     *
+     * @author Daniel Richard (Laivy)
      * @since 1.0-SNAPSHOT
      */
-    static @NotNull HttpAuthorization bearer(final @NotNull String headerName, @NotNull Predicate<String> predicate) {
+    static @NotNull HttpAuthorization bearer(final @NotNull HeaderKey key, @NotNull Predicate<String> predicate) {
         // Bad Request (400)
-        @NotNull HttpResponse bad = new BasicHttpResponse(400, "bad request");
-        bad.setVersion(HttpVersion.HTTP_1_1);
+        @NotNull HttpResponse bad = HttpStatus.BAD_REQUEST.createResponse(HttpVersion.HTTP1_1());
         // Unauthorized (401)
-        @NotNull HttpResponse unauthorized = new BasicHttpResponse(401, "unauthorized");
-        unauthorized.addHeader(new BasicHeader("WWW-Authenticate", "Bearer"));
-        unauthorized.setVersion(HttpVersion.HTTP_1_1);
+        @NotNull HttpResponse unauthorized = HttpStatus.UNAUTHORIZED.createResponse(HttpVersion.HTTP1_1());
+        unauthorized.getHeaders().add(Header.create(HeaderKey.WWW_AUTHENTICATE, "Bearer"));
         // Missing authentication (407)
-        @NotNull HttpResponse missing = new BasicHttpResponse(407, "missing proxy authentication");
-        missing.addHeader(new BasicHeader("Proxy-Authenticate", "Bearer"));
-        missing.setVersion(HttpVersion.HTTP_1_1);
-
+        @NotNull HttpResponse missing = HttpStatus.PROXY_AUTHENTICATION_REQUIRED.createResponse(HttpVersion.HTTP1_1());
+        missing.getHeaders().add(Header.create(HeaderKey.PROXY_AUTHENTICATE, "Bearer"));
         // Authorization
         return (socket, request) -> {
             try {
-                if (!request.containsHeader(headerName)) {
-                    return missing;
-                }
+                @Nullable Header header = request.getHeaders().first(key).orElse(null);
+                if (header == null) return missing;
 
-                @NotNull String[] auth = request.getLastHeader(headerName).getValue().split(" ");
+                @NotNull String[] auth = header.getValue().split(" ");
 
                 if (auth.length < 2) {
                     return unauthorized;
@@ -72,7 +69,7 @@ public interface HttpAuthorization {
             } catch (@NotNull Throwable ignore) {
                 return bad;
             } finally {
-                request.removeHeaders(headerName);
+                request.getHeaders().remove(key);
             }
         };
     }
@@ -83,32 +80,28 @@ public interface HttpAuthorization {
      *
      * @param predicate a function that checks if the token is valid
      * @return an authentication object that implements the bearer token logic
-     * @author Daniel Richard (Laivy)
      * @see <a href="https://en.wikipedia.org/wiki/Basic_access_authentication">Basic Authorization</a>
+     *
+     * @author Daniel Richard (Laivy)\
      * @since 1.0-SNAPSHOT
      */
-    static @NotNull HttpAuthorization basic(final @NotNull String headerName, @NotNull Predicate<UsernamePasswordCredentials> predicate) {
+    static @NotNull HttpAuthorization basic(final @NotNull HeaderKey key, @NotNull Predicate<Basic> predicate) {
         // Bad Request (400)
-        @NotNull HttpResponse bad = new BasicHttpResponse(400, "bad request");
-        bad.setVersion(HttpVersion.HTTP_1_1);
+        @NotNull HttpResponse bad = HttpStatus.BAD_REQUEST.createResponse(HttpVersion.HTTP1_1());
         // Unauthorized (401)
-        @NotNull HttpResponse unauthorized = new BasicHttpResponse(401, "unauthorized");
-        unauthorized.addHeader(new BasicHeader("WWW-Authenticate", "Bearer"));
-        unauthorized.setVersion(HttpVersion.HTTP_1_1);
+        @NotNull HttpResponse unauthorized = HttpStatus.UNAUTHORIZED.createResponse(HttpVersion.HTTP1_1());
+        unauthorized.getHeaders().add(Header.create(HeaderKey.WWW_AUTHENTICATE, "Basic"));
         // Missing authentication (407)
-        @NotNull HttpResponse missing = new BasicHttpResponse(407, "missing proxy authentication");
-        missing.addHeader(new BasicHeader("Proxy-Authenticate", "Bearer"));
-        missing.setVersion(HttpVersion.HTTP_1_1);
+        @NotNull HttpResponse missing = HttpStatus.PROXY_AUTHENTICATION_REQUIRED.createResponse(HttpVersion.HTTP1_1());
+        missing.getHeaders().add(Header.create(HeaderKey.PROXY_AUTHENTICATE, "Basic"));
 
         // Authorization
-
         return (socket, request) -> {
             try {
-                if (!request.containsHeader(headerName)) {
-                    return missing;
-                }
+                @Nullable Header header = request.getHeaders().first(key).orElse(null);
+                if (header == null) return missing;
 
-                @NotNull String[] auth = request.getLastHeader(headerName).getValue().split(" ");
+                @NotNull String[] auth = header.getValue().split(" ");
 
                 if (auth.length < 2) {
                     return unauthorized;
@@ -119,11 +112,11 @@ public interface HttpAuthorization {
                 @NotNull String encoded = Arrays.stream(auth).skip(1).map(string -> string + " ").collect(Collectors.joining());
                 @NotNull String[] decoded = new String(Base64.getDecoder().decode(encoded)).split(":");
 
-                return predicate.test(new UsernamePasswordCredentials(decoded[0], decoded[1].toCharArray())) ? null : unauthorized;
+                return predicate.test(new Basic(decoded[0], decoded[1].toCharArray())) ? null : unauthorized;
             } catch (@NotNull Throwable ignore) {
                 return bad;
             } finally {
-                request.removeHeaders(headerName);
+                request.getHeaders().remove(key);
             }
         };
     }

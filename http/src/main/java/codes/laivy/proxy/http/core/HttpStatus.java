@@ -22,6 +22,8 @@ public class HttpStatus {
     public static final @NotNull HttpStatus SWITCHING_PROTOCOLS = new HttpStatus(101, "Switching Protocols", HeaderKey.UPGRADE);
 
     public static final @NotNull HttpStatus BAD_REQUEST = new HttpStatus(400, "Bad Request");
+    public static final @NotNull HttpStatus UNAUTHORIZED = new HttpStatus(401, "Unauthorized");
+    public static final @NotNull HttpStatus PROXY_AUTHENTICATION_REQUIRED = new HttpStatus(407, "Proxy Authentication Required");
 
     // Object
 
