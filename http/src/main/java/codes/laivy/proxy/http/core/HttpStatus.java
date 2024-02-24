@@ -13,7 +13,7 @@ public class HttpStatus {
     // Static initializers
 
     public static final @NotNull HttpStatus CONTINUE = new HttpStatus(100, "Continue");
-//    public static final @NotNull HttpStatus SWITCHING_PROTOCOLS = new HttpStatus(101, "Switching Protocols", "Upgrade");
+    public static final @NotNull HttpStatus SWITCHING_PROTOCOLS = new HttpStatus(101, "Switching Protocols", HeaderKey.UPGRADE);
 
     // Object
 
@@ -30,7 +30,7 @@ public class HttpStatus {
         this.message = message;
         this.headers = Arrays.copyOf(headers, headers.length);
 
-        if (message.length() > 2048) {
+        if (message.length() > 8192) {
             throw new IllegalStateException("http status message too large");
         }
     }

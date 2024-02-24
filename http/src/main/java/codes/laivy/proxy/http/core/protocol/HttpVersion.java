@@ -7,10 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
-import java.util.Comparator;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 public abstract class HttpVersion implements Closeable {
 
@@ -27,12 +24,16 @@ public abstract class HttpVersion implements Closeable {
 
         return versions.toArray(new HttpVersion[0]);
     }
+    public static @NotNull HttpVersion getVersion(@NotNull String string) throws NullPointerException {
+        @NotNull Optional<HttpVersion> optional = Arrays.stream(getVersions()).filter(version -> version.toString().equalsIgnoreCase(string)).findFirst();
+        return optional.orElseThrow(() -> new NullPointerException("cannot find the HTTP version '" + string + "'"));
+    }
 
     // Object
 
     private final int minor;
-    private final int major;
 
+    private final int major;
     protected HttpVersion(int minor, int major) {
         this.minor = minor;
         this.major = major;
