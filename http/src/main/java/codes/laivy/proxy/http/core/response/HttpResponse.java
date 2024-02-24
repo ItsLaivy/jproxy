@@ -1,5 +1,6 @@
 package codes.laivy.proxy.http.core.response;
 
+import codes.laivy.proxy.http.core.HttpStatus;
 import codes.laivy.proxy.http.core.message.Message;
 import codes.laivy.proxy.http.core.protocol.HttpVersion;
 import org.jetbrains.annotations.NotNull;
@@ -24,26 +25,32 @@ public interface HttpResponse {
     byte[] getBytes();
 
     /**
-     * Retrieves the version of this HTTP request
-     * @return the version of this request
+     * Retrieves the status of this HTTP response
+     * @return the version of this response
+     */
+    @NotNull HttpStatus getStatus();
+
+    /**
+     * Retrieves the version of this HTTP response
+     * @return the version of this response
      */
     @NotNull HttpVersion getVersion();
 
     /**
-     * Retrieves the charset of this request.
-     * @return The charset of the request
+     * Retrieves the charset of this response.
+     * @return The charset of the response
      */
     @NotNull Charset getCharset();
 
     /**
-     * Retrieves the headers of this request.
-     * @return The headers of the request
+     * Retrieves the headers of this response.
+     * @return The headers of the response
      */
     @NotNull MutableHeaders getHeaders();
 
     /**
-     * Retrieves the message, which is the body of the request. It can be null if there is no message.
-     * @return The message body of the request
+     * Retrieves the message, which is the body of the response. It can be null if there is no message.
+     * @return The message body of the response
      */
     @Nullable Message getMessage();
 
