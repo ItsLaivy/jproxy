@@ -85,11 +85,19 @@ class HttpFactory1_1 implements HttpFactory {
             }
 
             // Validate host header
-            int count = headerList.count(HeaderKey.HOST);
-            if (count == 0) {
+            @NotNull Header[] hostHeaders = headerList.get(HeaderKey.HOST);
+            if (hostHeaders.length == 0) {
                 throw new ParseException("missing '" + HeaderKey.HOST + "' header", 0);
-            } else if (count > 1) {
+            } else if (hostHeaders.length > 1) {
                 throw new ParseException("multiples '" + HeaderKey.HOST + "' headers", 0);
+            }
+
+            if (authority == null) {
+                try {
+                    authority = URIAuthority.parse(hostHeaders[0].getValue());
+                } catch (@NotNull Throwable throwable) {
+                    throw new ParseException("cannot parse '" + HeaderKey.HOST + "' into a valid address: " + throwable.getMessage(), 0);
+                }
             }
             // Charset
             @NotNull Charset charset = StandardCharsets.UTF_8;
