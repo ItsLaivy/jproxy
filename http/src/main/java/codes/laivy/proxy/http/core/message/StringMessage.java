@@ -2,10 +2,7 @@ package codes.laivy.proxy.http.core.message;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
 public final class StringMessage implements Message {
 
@@ -19,14 +16,8 @@ public final class StringMessage implements Message {
     }
 
     @Override
-    public @NotNull InputStream getContent() {
-        return new ByteArrayInputStream(bytes);
-    }
-
-    @Override
-    public void writeTo(final @NotNull OutputStream stream) throws IOException {
-        stream.write(bytes);
-        stream.flush();
+    public byte[] getContent() {
+        return bytes;
     }
 
     @Override

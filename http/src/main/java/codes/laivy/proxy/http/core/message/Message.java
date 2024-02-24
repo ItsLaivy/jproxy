@@ -6,9 +6,7 @@ import java.io.*;
 
 public interface Message extends Closeable {
 
-    @NotNull InputStream getContent() throws IOException;
-
-    void writeTo(@NotNull OutputStream stream) throws IOException;
+    byte[] getContent();
 
     long size();
 
