@@ -43,6 +43,7 @@ public interface HttpAuthorization {
         // Missing authentication (407)
         @NotNull HttpResponse missing = HttpStatus.PROXY_AUTHENTICATION_REQUIRED.createResponse(HttpVersion.HTTP1_1());
         missing.getHeaders().add(Header.create(HeaderKey.PROXY_AUTHENTICATE, "Bearer"));
+
         // Authorization
         return (socket, request) -> {
             try {

@@ -1,14 +1,14 @@
 package codes.laivy.proxy.http.connection;
 
 import codes.laivy.proxy.connection.ProxyClient;
-import org.apache.hc.core5.http.HttpRequest;
-import org.apache.hc.core5.http.HttpResponse;
-import org.apache.hc.core5.http.ParseException;
+import codes.laivy.proxy.http.core.request.HttpRequest;
+import codes.laivy.proxy.http.core.response.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.text.ParseException;
 import java.util.concurrent.CompletableFuture;
 
 public interface HttpProxyClient extends ProxyClient {

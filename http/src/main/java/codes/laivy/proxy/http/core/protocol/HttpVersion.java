@@ -36,13 +36,11 @@ public abstract class HttpVersion implements Closeable {
     // Object
 
     private final int minor;
-
     private final int major;
+
     protected HttpVersion(int minor, int major) {
         this.minor = minor;
         this.major = major;
-
-        getVersions();
     }
 
     // Modules

@@ -48,6 +48,7 @@ public interface HttpResponse {
      * Retrieves the charset of this response.
      * @return The charset of the response
      */
+    // todo: this needs to be on Message class (maybe?)
     @NotNull Charset getCharset();
 
     /**

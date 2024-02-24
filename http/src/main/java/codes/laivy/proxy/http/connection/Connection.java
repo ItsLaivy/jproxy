@@ -1,8 +1,7 @@
 package codes.laivy.proxy.http.connection;
 
-import org.apache.hc.core5.http.HttpRequest;
-import org.apache.hc.core5.http.HttpResponse;
-import org.apache.hc.core5.http.ParseException;
+import codes.laivy.proxy.http.core.request.HttpRequest;
+import codes.laivy.proxy.http.core.response.HttpResponse;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -10,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.text.ParseException;
 import java.util.concurrent.CompletableFuture;
 
 public interface Connection extends AutoCloseable {

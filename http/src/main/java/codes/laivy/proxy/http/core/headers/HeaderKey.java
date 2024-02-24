@@ -94,6 +94,7 @@ public final class HeaderKey {
     public static @NotNull HeaderKey HOST = HeaderKey.create("Host", Pattern.compile("^([a-zA-Z0-9.-]+)(:([0-9]+))?$"));
     public static @NotNull HeaderKey WWW_AUTHENTICATE = HeaderKey.create("WWW-Authenticate");
     public static @NotNull HeaderKey PROXY_AUTHENTICATE = HeaderKey.create("Proxy-Authenticate");
+    public static @NotNull HeaderKey PROXY_AUTHORIZATION = HeaderKey.create("Proxy-Authorization");
 
     /**
      * @see <a href="https://regexr.com/7sg4c">RegExr Tests</a>

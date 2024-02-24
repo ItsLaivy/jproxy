@@ -16,8 +16,6 @@ public abstract class HttpProxy extends ProxyServer implements AutoCloseable {
 
     // Initializers
 
-    public static @NotNull String ANONYMOUS_HEADER = "X-Anonymous";
-
     public static void main(String[] args) {
     }
 

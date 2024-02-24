@@ -29,11 +29,14 @@ public interface Header extends NameValuePair {
             public @NotNull HeaderKey getKey() {
                 return key;
             }
-
             @Override
             @Contract(pure = true)
             public @NotNull String getValue() {
                 return value;
+            }
+            @Override
+            public @NotNull String toString() {
+                return getName() + "=" + getValue();
             }
         };
     }
@@ -48,10 +51,13 @@ public interface Header extends NameValuePair {
             public @NotNull HeaderKey getKey() {
                 return key;
             }
-
             @Override
             public @NotNull String getValue() {
                 return object.toString();
+            }
+            @Override
+            public @NotNull String toString() {
+                return getName() + "=" + getValue();
             }
         };
     }

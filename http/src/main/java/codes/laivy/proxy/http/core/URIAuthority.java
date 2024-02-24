@@ -113,7 +113,8 @@ public final class URIAuthority {
 
     @Override
     public @NotNull String toString() {
-        return super.toString();
+        // todo: URIAuthority#toString
+        return getHostName() + ":" + getPort();
     }
 
     @Override

@@ -14,12 +14,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Objects;
 
-public class HttpStatus {
+public class HttpStatus implements Comparable<Integer> {
 
     // Static initializers
 
     public static final @NotNull HttpStatus CONTINUE = new HttpStatus(100, "Continue");
     public static final @NotNull HttpStatus SWITCHING_PROTOCOLS = new HttpStatus(101, "Switching Protocols", HeaderKey.UPGRADE);
+
+    public static final @NotNull HttpStatus OK = new HttpStatus(200, "OK");
 
     public static final @NotNull HttpStatus BAD_REQUEST = new HttpStatus(400, "Bad Request");
     public static final @NotNull HttpStatus UNAUTHORIZED = new HttpStatus(401, "Unauthorized");
@@ -98,6 +100,11 @@ public class HttpStatus {
     @Override
     public int hashCode() {
         return Objects.hash(getCode());
+    }
+
+    @Override
+    public int compareTo(@NotNull Integer o) {
+        return getCode() - o;
     }
 
     // Classes
