@@ -18,6 +18,14 @@ import static codes.laivy.proxy.http.core.headers.Headers.MutableHeaders;
  */
 public interface HttpResponse {
 
+    // Static initializers
+
+    static @NotNull HttpResponse create(@NotNull HttpStatus status, @NotNull HttpVersion version, @NotNull Charset charset, @NotNull MutableHeaders headers, @Nullable Message message) {
+        return new HttpResponseImpl(status, version, charset, headers, message);
+    }
+
+    // Object
+
     /**
      * Retrieves the raw bytes of this response, which is the purest form of the response data.
      * @return The raw bytes of the response
