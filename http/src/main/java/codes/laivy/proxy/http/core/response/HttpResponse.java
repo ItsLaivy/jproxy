@@ -1,12 +1,13 @@
 package codes.laivy.proxy.http.core.response;
 
-import codes.laivy.proxy.http.core.headers.Headers;
 import codes.laivy.proxy.http.core.message.Message;
 import codes.laivy.proxy.http.core.protocol.HttpVersion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.Charset;
+
+import static codes.laivy.proxy.http.core.headers.Headers.MutableHeaders;
 
 /**
  * This interface represents an HTTP response.
@@ -38,7 +39,7 @@ public interface HttpResponse {
      * Retrieves the headers of this request.
      * @return The headers of the request
      */
-    @NotNull Headers getHeaders();
+    @NotNull MutableHeaders getHeaders();
 
     /**
      * Retrieves the message, which is the body of the request. It can be null if there is no message.
