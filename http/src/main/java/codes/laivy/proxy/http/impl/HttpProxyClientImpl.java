@@ -1,39 +1,38 @@
 package codes.laivy.proxy.http.impl;
 
-import codes.laivy.proxy.exception.SerializationException;
+import codes.laivy.proxy.http.connection.Connection;
 import codes.laivy.proxy.http.connection.HttpProxyClient;
 import codes.laivy.proxy.http.core.HttpAuthorization;
-import codes.laivy.proxy.http.utils.HttpSerializers;
-import codes.laivy.proxy.http.utils.HttpUtils;
+import codes.laivy.proxy.http.core.HttpStatus;
+import codes.laivy.proxy.http.core.headers.Header;
+import codes.laivy.proxy.http.core.headers.HeaderKey;
+import codes.laivy.proxy.http.core.protocol.HttpVersion;
+import codes.laivy.proxy.http.core.request.HttpRequest;
+import codes.laivy.proxy.http.core.response.HttpResponse;
 import io.netty.util.concurrent.ThreadPerTaskExecutor;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.io.entity.StringEntity;
-import org.apache.hc.core5.http.message.BasicClassicHttpRequest;
-import org.apache.hc.core5.http.message.BasicHttpRequest;
-import org.apache.hc.core5.http.message.BasicHttpResponse;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static codes.laivy.proxy.http.HttpProxy.ANONYMOUS_HEADER;
-import static codes.laivy.proxy.http.utils.HttpUtils.clientErrorResponse;
-import static codes.laivy.proxy.http.utils.HttpUtils.successResponse;
-
 public class HttpProxyClientImpl implements HttpProxyClient {
+
+    // Static initializers
+
+    // todo: enhance this
+    public static @NotNull HeaderKey ANONYMOUS_HEADER = HeaderKey.create("X-Anonymous");
 
     // Initializers
 
@@ -161,7 +160,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
     // Modules
 
     @Override
-    public @Nullable HttpRequest read() throws IOException, SerializationException {
+    public @Nullable HttpRequest read() throws IOException, ParseException {
         @NotNull ByteBuffer buffer = ByteBuffer.allocate(4096); // 4KB Buffer
 
         @NotNull SocketChannel channel = getSocket().getChannel();
@@ -182,149 +181,86 @@ public class HttpProxyClientImpl implements HttpProxyClient {
             read = channel.read(buffer);
         }
 
-        buffer = ByteBuffer.wrap(builder.toString().getBytes(StandardCharsets.UTF_8));
-        System.out.println("Read brute: '" + new String(buffer.array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
-        @NotNull HttpRequest request = HttpSerializers.getHttpRequest().deserialize(buffer);
-        System.out.println("Read parse: '" + new String(HttpSerializers.getHttpRequest().serialize(request).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
+        byte[] bytes = builder.toString().getBytes();
 
-        if (request instanceof SecureHttpRequest) {
-            return request;
-        } else {
-            try {
-                if (request.containsHeader(HttpHeaders.PROXY_CONNECTION)) {
-                    // Connection header
-                    this.keepAlive = request.getHeader(HttpHeaders.PROXY_CONNECTION).getValue().equalsIgnoreCase("keep-alive");
-                }
-            } catch (@NotNull ProtocolException ignore) {
-                this.keepAlive = true;
-            }
-
-            @NotNull HttpRequest clone;
-
-            try {
-                if (request instanceof HttpEntityContainer) {
-                    @NotNull BasicClassicHttpRequest withBody = new BasicClassicHttpRequest(request.getMethod(), request.getUri().getPath());
-                    withBody.setEntity(((HttpEntityContainer) request).getEntity());
-                    clone = withBody;
-                } else {
-                    @NotNull BasicHttpRequest withBody = new BasicHttpRequest(request.getMethod(), request.getUri().getPath());
-                    clone = withBody;
-                }
-
-                clone.setVersion(request.getVersion());
-                clone.setAuthority(request.getAuthority());
-
-                for (@NotNull Header header : request.getHeaders()) {
-                    clone.addHeader(header);
-                }
-
-                clone.setHeader("Host", request.getAuthority());
-            } catch (@NotNull Throwable throwable) {
-                throw new SerializationException("cannot clone http request", throwable);
-            }
-
-            return clone;
+        @NotNull Optional<@NotNull HttpVersion> optional = Arrays.stream(HttpVersion.getVersions()).filter(v -> v.getFactory().getRequest().isCompatible(this, bytes)).findFirst();
+        if (!optional.isPresent()) {
+            throw new ParseException("invalid http request", 0);
         }
+
+        System.out.println("Read brute: '" + new String(buffer.array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
+        @NotNull HttpRequest request = optional.get().getFactory().getRequest().parse(this, bytes);
+        System.out.println("Read parse: '" + new String(request.getVersion().getFactory().getRequest().wrap(request)).replaceAll("\r", "").replaceAll("\n", " ") + "'");
+
+        request.getHeaders().first(HeaderKey.PROXY_CONNECTION).ifPresent(header -> this.keepAlive = header.getValue().equalsIgnoreCase("keep-alive"));
+        return request;
     }
 
     @Override
-    public void write(@NotNull HttpResponse response) throws IOException, SerializationException {
-        getSocket().getChannel().write(HttpSerializers.getHttpResponse().serialize(response));
-        System.out.println("Write to client: '" + new String(HttpSerializers.getHttpResponse().serialize(response).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
+    public void write(@NotNull HttpResponse response) throws IOException, ParseException {
+        getSocket().getChannel().write(ByteBuffer.wrap(response.getBytes()));
+        System.out.println("Write to client: '" + new String(response.getBytes()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
     }
     @Override
-    public @NotNull CompletableFuture<HttpResponse> request(@NotNull HttpRequest request) throws IOException, SerializationException {
+    public @NotNull CompletableFuture<HttpResponse> request(@NotNull HttpRequest request) throws IOException, ParseException {
         @NotNull CompletableFuture<HttpResponse> future = new CompletableFuture<>();
 
         CompletableFuture.runAsync(() -> {
             try {
-                if (!(request instanceof SecureHttpRequest) && !request.containsHeader(HttpHeaders.HOST)) {
-                    future.complete(HttpUtils.clientErrorResponse(request.getVersion(), "Bad Request - Missing '" + HttpHeaders.HOST + "' header"));
-                    return;
-                }
+                @Nullable Header host = request.getHeaders().first(HeaderKey.HOST).orElse(null);
+                if (host == null) {
+                    System.out.println("A");
+                    future.complete(HttpStatus.BAD_REQUEST.createResponse(request.getVersion()));
+                } else {
+                    @Nullable HttpAuthorization authorization = getProxy().getAuthentication();
+                    if (!isAuthenticated() && authorization != null) {
+                        @Nullable HttpResponse authResponse = authorization.validate(this, request);
 
-                @Nullable HttpAuthorization authorization = getProxy().getAuthentication();
-                if (!isAuthenticated() && authorization != null && !(request instanceof SecureHttpRequest)) {
-                    @Nullable HttpResponse authResponse = authorization.validate(this, request);
-
-                    if (authResponse != null) {
-                        future.complete(authResponse);
-                        return;
-                    } else {
-                        setAuthenticated(true);
-                    }
-                }
-
-                try {
-                    @NotNull InetSocketAddress address;
-
-                    if (!(request instanceof SecureHttpRequest)) {
-                        address = new InetSocketAddress(request.getAuthority().getHostName(), request.getAuthority().getPort());
-
-                        if (request.getMethod().equalsIgnoreCase("CONNECT")) {
-                            boolean keepAlive = !request.containsHeader(HttpHeaders.PROXY_CONNECTION) || request.getHeader(HttpHeaders.PROXY_CONNECTION).getValue().equalsIgnoreCase("keep-alive");
-                            boolean anonymous = request.containsHeader(ANONYMOUS_HEADER) && request.getHeader(ANONYMOUS_HEADER).getValue().equalsIgnoreCase("true");
-
-                            createConnection(address, anonymous, keepAlive);
-
-                            session = false;
-                            future.complete(successResponse(request.getVersion()));
+                        if (authResponse != null) {
+                            future.complete(authResponse);
                             return;
-                        } else if (!request.containsHeader(HttpHeaders.HOST)) {
-                            future.complete(clientErrorResponse(request.getVersion(), "Bad Request - Missing 'Host' header"));
-                            return;
+                        } else {
+                            setAuthenticated(true);
                         }
-                    } else if (getConnections().length == 0) {
-                        address = getConnections()[0].getAddress();
-                    } else {
-                        future.complete(clientErrorResponse(request.getVersion(), "Bad Request - SSL request without proxy validation!"));
-                        return;
                     }
 
-                    @Nullable Connection connection = getConnection(address).orElse(null);
+                    try {
+                        @NotNull InetSocketAddress address = request.getAuthority().getAddress();
+                        @Nullable Connection connection = getConnection(address).orElse(null);
 
-                    if (connection != null) {
-                        future.complete(connection.write(request).get());
-                    } else if (!canSession()) {
-                        future.complete(clientErrorResponse(request.getVersion(), "Bad Request - Cannot have multiples sessions!"));
-                    } else try { // Create new connection
-                        boolean keepAlive = !request.containsHeader(HttpHeaders.CONNECTION) || request.getHeader(HttpHeaders.CONNECTION).getValue().equalsIgnoreCase("keep-alive");
-                        boolean anonymous = request.containsHeader(ANONYMOUS_HEADER) && request.getHeader(ANONYMOUS_HEADER).getValue().equalsIgnoreCase("true");
+                        if (connection != null) {
+                            future.complete(connection.write(request).get());
+                        } else if (!canSession()) {
+                            System.out.println("B");
+                            future.complete(HttpStatus.BAD_REQUEST.createResponse(request.getVersion()));
+                        } else try { // Create new connection
+                            boolean keepAlive = !request.getHeaders().contains(HeaderKey.CONNECTION) || request.getHeaders().last(HeaderKey.CONNECTION).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("keep-alive");
+                            boolean anonymous = request.getHeaders().contains(ANONYMOUS_HEADER) && request.getHeaders().last(ANONYMOUS_HEADER).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("true");
 
-                        @NotNull Connection instance = createConnection(address, anonymous, keepAlive);
-                        // todo: Clone request without the anonymous things
+                            @NotNull Connection instance = createConnection(address, anonymous, keepAlive);
+                            // todo: Clone request without the anonymous things
 
-                        instance.write(request).whenComplete((done, exception) -> {
-                            try {
-                                if (exception != null) future.completeExceptionally(exception);
-                                else future.complete(done);
+                            instance.write(request).whenComplete((done, exception) -> {
+                                try {
+                                    if (exception != null) future.completeExceptionally(exception);
+                                    else future.complete(done);
 
-                                if (!instance.isKeepAlive()) {
-                                    instance.close();
+                                    if (!instance.isKeepAlive()) {
+                                        instance.close();
+                                    }
+                                } catch (@NotNull Throwable throwable) {
+                                    future.completeExceptionally(throwable);
                                 }
-                            } catch (@NotNull Throwable throwable) {
-                                future.completeExceptionally(throwable);
-                            }
-                        });
-                    } catch (@NotNull Throwable ignore) {
-                        // todo: create a debug system
-                        future.complete(clientErrorResponse(request.getVersion(), "Bad Request - Cannot connect to destination"));
+                            });
+                        } catch (@NotNull Throwable ignore) {
+                            // todo: create a debug system
+                            ignore.printStackTrace();
+                            future.complete(HttpStatus.BAD_REQUEST.createResponse(request.getVersion()));
+                        }
+                    } catch (@NotNull Throwable throwable) {
+                        System.out.println("D");
+                        future.completeExceptionally(throwable);
                     }
-                } catch (@NotNull Throwable throwable) {
-                    throwable.printStackTrace();
-                    @NotNull HttpResponse response = new BasicHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "proxy internal error");
-
-                    if (throwable instanceof SerializationException) {
-                        response = new BasicHttpResponse(HttpStatus.SC_BAD_REQUEST, "invalid request format");
-                    } else if (throwable instanceof ConnectException || throwable instanceof SocketException) {
-                        response = new BasicHttpResponse(HttpStatus.SC_BAD_REQUEST, throwable.getMessage());
-                    }
-
-                    if (!(request instanceof SecureHttpRequest)) {
-                        response.setVersion(request.getVersion());
-                    }
-
-                    future.complete(response);
                 }
             } catch (@NotNull Throwable throwable) {
                 future.completeExceptionally(throwable);

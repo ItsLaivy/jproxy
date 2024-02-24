@@ -1,9 +1,8 @@
 package codes.laivy.proxy.http.impl;
 
 import codes.laivy.proxy.http.connection.HttpProxyClient;
-import codes.laivy.proxy.http.utils.HttpSerializers;
-import codes.laivy.proxy.http.utils.HttpUtils;
-import org.apache.hc.core5.http.HttpRequest;
+import codes.laivy.proxy.http.core.HttpStatus;
+import codes.laivy.proxy.http.core.request.HttpRequest;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
@@ -106,13 +105,13 @@ class HttpProxyImplThread extends Thread {
                                 if (request == null) {
                                     client.close();
                                 } else {
-                                    System.out.println("Clone: '" + new String(HttpSerializers.getHttpRequest().serialize(request).array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
+                                    System.out.println("Clone: '" + new String(request.getVersion().getFactory().getRequest().wrap(request)).replaceAll("\r", "").replaceAll("\n", " ") + "'");
 
                                     client.request(request).whenComplete((done, exception) -> {
                                         // todo: look this
                                         if (exception != null) {
                                             try {
-                                                client.write(HttpUtils.clientErrorResponse(request.getVersion(), "Bad Request"));
+                                                client.write(HttpStatus.BAD_REQUEST.createResponse(request.getVersion()));
                                             } catch (@NotNull Exception ignore) {}
                                         } else try {
                                             client.write(done);

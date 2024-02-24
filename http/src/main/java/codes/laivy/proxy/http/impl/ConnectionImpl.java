@@ -1,12 +1,10 @@
 package codes.laivy.proxy.http.impl;
 
-import codes.laivy.proxy.exception.SerializationException;
-import codes.laivy.proxy.http.connection.HttpProxyClient;
-import codes.laivy.proxy.http.utils.HttpSerializers;
-import codes.laivy.proxy.http.utils.HttpUtils;
-import org.apache.hc.core5.http.HttpRequest;
-import org.apache.hc.core5.http.HttpResponse;
-import org.apache.hc.core5.http.HttpVersion;
+import codes.laivy.proxy.http.connection.Connection;
+import codes.laivy.proxy.http.core.HttpStatus;
+import codes.laivy.proxy.http.core.protocol.HttpVersion;
+import codes.laivy.proxy.http.core.request.HttpRequest;
+import codes.laivy.proxy.http.core.response.HttpResponse;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,12 +15,15 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-public class ConnectionImpl implements HttpProxyClient.Connection {
+public class ConnectionImpl implements Connection {
 
     // Object
 
@@ -78,7 +79,7 @@ public class ConnectionImpl implements HttpProxyClient.Connection {
         channel.configureBlocking(false);
 
         channel.bind(new InetSocketAddress(getClient().getProxy().address().getHostName(), 0));
-        channel.connect(getAddress());
+        channel.connect(getAddress().isUnresolved() ? new InetSocketAddress(getAddress().getAddress(), getAddress().getPort()) : getAddress());
 
         channel.finishConnect();
 
@@ -106,13 +107,21 @@ public class ConnectionImpl implements HttpProxyClient.Connection {
 
                     try {
                         System.out.println("Read on connection: '" + builder.toString().replaceAll("\r", "").replaceAll("\n", " ") + "'");
-                        buffer = ByteBuffer.wrap(builder.toString().getBytes(StandardCharsets.UTF_8));
-                        response = HttpSerializers.getHttpResponse().deserialize(buffer);
-                    } catch (@NotNull SerializationException e) {
-                        response = HttpUtils.clientErrorResponse(HttpVersion.HTTP_1_1, "Bad Request - " + e.getMessage());
+                        byte[] bytes = builder.toString().getBytes();
+
+                        @NotNull Optional<@NotNull HttpVersion> optional = Arrays.stream(HttpVersion.getVersions()).filter(v -> v.getFactory().getResponse().isCompatible(client, bytes)).findFirst();
+                        if (!optional.isPresent()) {
+                            throw new ParseException("invalid http response", 0);
+                        }
+
+                        response = optional.get().getFactory().getResponse().parse(client, bytes);
+                    } catch (@NotNull ParseException e) {
+                        e.printStackTrace();
+                        response = HttpStatus.BAD_REQUEST.createResponse(HttpVersion.HTTP1_1());
                     }
                 } catch (IOException e) {
-                    response = HttpUtils.clientErrorResponse(HttpVersion.HTTP_1_1, "Cannot process request");
+                    e.printStackTrace();
+                    response = HttpStatus.BAD_REQUEST.createResponse(HttpVersion.HTTP1_1());
                 }
 
                 try {
@@ -170,7 +179,8 @@ public class ConnectionImpl implements HttpProxyClient.Connection {
     }
 
     @Override
-    public @NotNull CompletableFuture<HttpResponse> write(@NotNull HttpRequest request) throws IOException, SerializationException {
+    public @NotNull CompletableFuture<HttpResponse> write(@NotNull HttpRequest request) throws IOException, ParseException {
+        @NotNull HttpVersion version = request.getVersion();
         @Nullable Socket socket = getSocket();
 
         if (socket == null || !socket.isConnected() || socket.isClosed()) {
@@ -181,7 +191,7 @@ public class ConnectionImpl implements HttpProxyClient.Connection {
         requestFutures.add(future);
 
         try {
-            @NotNull ByteBuffer buffer = HttpSerializers.getHttpRequest().serialize(request);
+            @NotNull ByteBuffer buffer = ByteBuffer.wrap(version.getFactory().getRequest().wrap(request));
             socket.getChannel().write(buffer);
             System.out.println("Write: '" + new String(buffer.array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
         } catch (@NotNull Throwable throwable) {
