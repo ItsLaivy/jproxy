@@ -17,6 +17,13 @@ public interface Header extends NameValuePair {
     @NotNull String getValue();
 
     static @NotNull Header create(final @NotNull HeaderKey key, final @NotNull String value) {
+        return create(key, value, true);
+    }
+    static @NotNull Header create(final @NotNull HeaderKey key, final @NotNull String value, boolean unsafe) {
+        if (unsafe && key.getPattern() != null && key.getPattern().matcher(value).matches()) {
+            throw new IllegalArgumentException("the value '" + value + "' cannot be applied to header '" + key.getName() + "'. The pattern is '" + key.getPattern().pattern() + "'");
+        }
+
         return new Header() {
             @Override
             public @NotNull HeaderKey getKey() {
@@ -30,6 +37,11 @@ public interface Header extends NameValuePair {
             }
         };
     }
+
+    /**
+     * @deprecated cannot check value using the key pattern
+     */
+    @Deprecated
     static @NotNull Header create(final @NotNull HeaderKey key, final @NotNull Object object) {
         return new Header() {
             @Override
