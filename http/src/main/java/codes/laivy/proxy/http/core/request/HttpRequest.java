@@ -1,7 +1,8 @@
 package codes.laivy.proxy.http.core.request;
 
+import codes.laivy.proxy.http.core.Method;
 import codes.laivy.proxy.http.core.URIAuthority;
-import codes.laivy.proxy.http.core.headers.Headers;
+import codes.laivy.proxy.http.core.headers.Headers.MutableHeaders;
 import codes.laivy.proxy.http.core.message.Message;
 import codes.laivy.proxy.http.core.protocol.HttpVersion;
 import org.jetbrains.annotations.NotNull;
@@ -18,11 +19,21 @@ import java.nio.charset.Charset;
  */
 public interface HttpRequest {
 
+    // Static initializers
+
+    static @NotNull HttpRequest create(@NotNull HttpVersion version, @NotNull Method method, @Nullable URIAuthority authority, @NotNull URI uri, @NotNull Charset charset, @NotNull MutableHeaders headers, @Nullable Message message) {
+        return new HttpRequestImpl(version, method, authority, uri, charset, headers, message);
+    }
+
+    // Object
+
     /**
      * Retrieves the raw bytes of this request, which is the purest form of the request data.
      * @return The raw bytes of the request
      */
     byte[] getBytes();
+
+    @NotNull Method getMethod();
 
     /**
      * Retrieves the version of this HTTP request
@@ -52,7 +63,7 @@ public interface HttpRequest {
      * Retrieves the headers of this request.
      * @return The headers of the request
      */
-    @NotNull Headers getHeaders();
+    @NotNull MutableHeaders getHeaders();
 
     /**
      * Retrieves the message, which is the body of the request. It can be null if there is no message.

@@ -1,5 +1,6 @@
 package codes.laivy.proxy.http.core.protocol;
 
+import codes.laivy.proxy.http.core.protocol.v1_1.HttpVersion1_1;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -18,7 +19,12 @@ public abstract class HttpVersion implements Closeable {
     @ApiStatus.Internal
     protected static final @NotNull Set<HttpVersion> versions = new TreeSet<>(Comparator.comparingInt(o -> (o.getMajor() + o.getMinor())));
 
+    @SuppressWarnings("resource")
     public static @NotNull HttpVersion[] getVersions() {
+        if (versions.stream().noneMatch(version -> version.getMajor() == 1 && version.getMinor() == 1)) {
+            new HttpVersion1_1().init();
+        }
+
         return versions.toArray(new HttpVersion[0]);
     }
 
@@ -30,6 +36,8 @@ public abstract class HttpVersion implements Closeable {
     protected HttpVersion(int minor, int major) {
         this.minor = minor;
         this.major = major;
+
+        getVersions();
     }
 
     // Modules

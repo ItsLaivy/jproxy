@@ -22,6 +22,15 @@ public final class URIAuthority {
     public static final int DEFAULT_HTTP_PORT = 80;
     public static final int DEFAULT_HTTPS_PORT = 443;
 
+    public static boolean isUriAuthority(@NotNull String uri) {
+        try {
+            parse(uri);
+            return true;
+        } catch (URISyntaxException | UnknownHostException e) {
+            return false;
+        }
+    }
+
     public static @NotNull URIAuthority parse(@NotNull String uri) throws URISyntaxException, UnknownHostException {
         @Nullable Basic userInfo = null;
         @NotNull String hostName;
