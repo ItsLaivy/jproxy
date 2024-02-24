@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class HttpVersion1_1 extends HttpVersion {
 
-    private final @NotNull HttpFactory factory = new HttpFactory1_1();
+    private final @NotNull HttpFactory factory = new HttpFactory1_1(this);
 
     public HttpVersion1_1() {
         super(1, 1);

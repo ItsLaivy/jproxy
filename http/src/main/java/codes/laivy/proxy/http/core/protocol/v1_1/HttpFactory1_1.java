@@ -24,7 +24,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Optional;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 class HttpFactory1_1 implements HttpFactory {
@@ -44,43 +43,45 @@ class HttpFactory1_1 implements HttpFactory {
             @NotNull String[] content = string.split("\n\n\r\n", 2);
             // Request line
             @NotNull String requestLine = content[0].split("\r\n", 2)[0];
-            @NotNull Matcher matcher = Pattern.compile("\\S+").matcher(requestLine);
+            @NotNull String[] parts = requestLine.split(" ");
 
             @NotNull Method method;
             @Nullable URIAuthority authority;
             @NotNull URI uri;
 
             try {
-                method = Method.valueOf(matcher.group(0).toUpperCase());
+                method = Method.valueOf(parts[0].toUpperCase());
             } catch (@NotNull IllegalArgumentException e) {
-                throw new ParseException("cannot parse '" + matcher.group(0) + "' as a valid " + getVersion() + " request method", matcher.start(0));
+                throw new ParseException("cannot parse '" + parts[0] + "' as a valid " + getVersion() + " request method", 0);
             }
 
             try {
-                @NotNull String uriString = matcher.group(1);
+                @NotNull String uriString = parts[1];
 
                 if (URIAuthority.isUriAuthority(uriString)) {
                     authority = URIAuthority.parse(uriString);
-                    uri = new URI(uriString.substring(authority.toString().length()));
+                    // todo: fix this uri
+                    uri = new URI(uriString);
                 } else {
                     authority = null;
                     uri = new URI(uriString);
                 }
             } catch (UnknownHostException e) {
-                throw new ParseException("cannot parse '" + matcher.group(1) + "' as a valid host", matcher.start(1));
+                throw new ParseException("cannot parse '" + parts[1] + "' as a valid host", 0);
             } catch (URISyntaxException e) {
-                throw new ParseException("cannot parse '" + matcher.group(1) + "' as a valid http uri", matcher.start(1));
+                throw new ParseException("cannot parse '" + parts[1] + "' as a valid http uri", 0);
             }
 
             // Retrieve headers
             @NotNull MutableHeaders headerList = codes.laivy.proxy.http.core.headers.Headers.createMutable();
-            @NotNull String[] headerSection = content[0].substring(requestLine.length() + 4).split("\r\n");
+            // todo: if doesn't have headers, it will throw an exception
+            @NotNull String[] headerSection = content[0].split("\r\n", 2)[1].split("\r\n");
 
-            for (@NotNull String header : headerSection) {
+            for (@NotNull String headerBrute : headerSection) {
                 try {
-                    headerList.add(getHeaders().parse(header.getBytes()));
+                    headerList.add(getHeaders().parse(headerBrute.getBytes()));
                 } catch (@NotNull ParseException exception) {
-                    throw new ParseException("couldn't parse header '" + header + "': " + exception.getMessage(), 0);
+                    throw new ParseException("couldn't parse header '" + headerBrute + "': " + exception.getMessage(), 0);
                 }
             }
 
@@ -169,7 +170,7 @@ class HttpFactory1_1 implements HttpFactory {
             @NotNull HttpStatus status;
 
             // Content
-            @NotNull String[] content = string.split("\n\n\r\n", 2);
+            @NotNull String[] content = string.split("\r\n\r\n", 2);
             // Request line
             @NotNull String[] responseLine = content[0].split("\r\n", 2)[0].split(" ", 3);
 
@@ -184,8 +185,8 @@ class HttpFactory1_1 implements HttpFactory {
 
             // Retrieve headers
             @NotNull MutableHeaders headerList = codes.laivy.proxy.http.core.headers.Headers.createMutable();
-            @NotNull String[] headerSection = content[0].substring(content[0].split("\r\n", 2)[0].length() + 4).split("\r\n");
-
+            // todo: if doesn't have headers, it will throw an exception
+            @NotNull String[] headerSection = content[0].split("\r\n", 2)[1].split("\r\n");
             for (@NotNull String header : headerSection) {
                 try {
                     headerList.add(getHeaders().parse(header.getBytes()));
@@ -213,7 +214,7 @@ class HttpFactory1_1 implements HttpFactory {
         @Override
         public byte[] wrap(@NotNull HttpResponse response) {
             @NotNull StringBuilder builder = new StringBuilder();
-            builder.append(getVersion()).append(" ").append(response.getStatus().getCode()).append(response.getStatus().getMessage()).append("\r\n");
+            builder.append(getVersion()).append(" ").append(response.getStatus().getCode()).append(" ").append(response.getStatus().getMessage()).append("\r\n");
             // Write headers
             for (@NotNull Header header : response.getHeaders()) {
                 builder.append(new String(getHeaders().wrap(header))).append("\r\n");
