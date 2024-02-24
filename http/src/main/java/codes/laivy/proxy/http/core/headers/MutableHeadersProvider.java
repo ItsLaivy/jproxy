@@ -42,6 +42,16 @@ final class MutableHeadersProvider implements MutableHeaders {
         return list.remove(header);
     }
 
+    @Override
+    public boolean remove(@NotNull HeaderKey key) {
+        return list.removeIf(header -> header.getName().equalsIgnoreCase(header.getName()));
+    }
+
+    @Override
+    public boolean remove(@NotNull String name) {
+        return list.removeIf(header -> header.getName().equalsIgnoreCase(name));
+    }
+
     @NotNull
     @Override
     public Iterator<Header> iterator() {

@@ -65,6 +65,8 @@ public interface Headers extends Iterable<Header> {
         boolean add(@NotNull Header header);
 
         boolean remove(@NotNull Header header);
+        boolean remove(@NotNull HeaderKey key);
+        boolean remove(@NotNull String name);
 
     }
 
