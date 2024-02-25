@@ -95,11 +95,7 @@ class HttpFactory1_1 implements HttpFactory {
             @NotNull String[] headerSection = content[0].split("\r\n", 2)[1].split("\r\n");
 
             for (@NotNull String headerBrute : headerSection) {
-                try {
-                    headerList.add(getHeaders().parse(headerBrute.getBytes()));
-                } catch (@NotNull ParseException exception) {
-                    throw new ParseException("couldn't parse header '" + headerBrute + "': " + exception.getMessage(), 0);
-                }
+                headerList.add(getHeaders().parse(headerBrute.getBytes()));
             }
 
             // Validate host header
@@ -205,11 +201,7 @@ class HttpFactory1_1 implements HttpFactory {
             // todo: if doesn't have headers, it will throw an exception
             @NotNull String[] headerSection = content[0].split("\r\n", 2)[1].split("\r\n");
             for (@NotNull String header : headerSection) {
-                try {
-                    headerList.add(getHeaders().parse(header.getBytes()));
-                } catch (@NotNull ParseException exception) {
-                    throw new ParseException("couldn't parse header '" + header + "': " + exception.getMessage(), 0);
-                }
+                headerList.add(getHeaders().parse(header.getBytes()));
             }
             // Charset
             @NotNull Charset charset = StandardCharsets.UTF_8;
@@ -230,6 +222,12 @@ class HttpFactory1_1 implements HttpFactory {
 
         @Override
         public byte[] wrap(@NotNull HttpResponse response) {
+            for (@NotNull HeaderKey key : response.getStatus().getHeaders()) {
+                if (!response.getHeaders().contains(key)) {
+                    throw new NullPointerException("this response code '" + response.getStatus().getCode() + "' must have the header '" + key.getName() + "'");
+                }
+            }
+
             @NotNull StringBuilder builder = new StringBuilder();
             builder.append(getVersion()).append(" ").append(response.getStatus().getCode()).append(" ").append(response.getStatus().getMessage()).append("\r\n");
             // Write headers
@@ -273,6 +271,11 @@ class HttpFactory1_1 implements HttpFactory {
             @NotNull String value = parts[1];
 
             @NotNull HeaderKey key = HeaderKey.create(name);
+
+            if (key.getPattern() != null && !key.getPattern().matcher(value).matches()) {
+                throw new ParseException("invalid header '" + key.getName() + "' value format: " + value, string.indexOf(value));
+            }
+
             return Header.create(key, value);
         }
 

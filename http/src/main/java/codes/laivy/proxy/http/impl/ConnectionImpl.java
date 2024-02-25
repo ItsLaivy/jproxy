@@ -123,8 +123,7 @@ public class ConnectionImpl implements Connection {
 
                         response = optional.get().getFactory().getResponse().parse(client, bytes);
                     } catch (@NotNull ParseException e) {
-                        e.printStackTrace();
-                        response = HttpStatus.BAD_REQUEST.createResponse(HttpVersion.HTTP1_1());
+                        response = HttpResponse.create();
                     }
                 } catch (ClosedChannelException ignore) {
                     continue;

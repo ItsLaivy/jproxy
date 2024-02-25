@@ -260,13 +260,12 @@ public class HttpProxyClientImpl implements HttpProxyClient {
                                     future.completeExceptionally(throwable);
                                 }
                             });
-                        } catch (@NotNull Throwable ignore) {
-                            // todo: create a debug system
-                            ignore.printStackTrace();
-                            future.complete(HttpStatus.BAD_REQUEST.createResponse(clone.getVersion()));
+                        } catch (@NotNull ParseException parse) {
+                            future.complete(HttpResponse.create(new HttpStatus(400, "Bad Request - " + parse.getMessage()), request.getVersion(), request.getCharset(), request.getHeaders(), null));
+                        } catch (@NotNull Throwable e) {
+                            future.completeExceptionally(e);
                         }
                     } catch (@NotNull Throwable throwable) {
-                        throwable.printStackTrace();
                         future.completeExceptionally(throwable);
                     }
                 }

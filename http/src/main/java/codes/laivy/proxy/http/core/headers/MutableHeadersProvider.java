@@ -33,6 +33,12 @@ final class MutableHeadersProvider implements MutableHeaders {
     }
 
     @Override
+    public boolean put(@NotNull Header header) {
+        remove(header.getKey());
+        return add(header);
+    }
+
+    @Override
     public boolean add(@NotNull Header header) {
         return list.add(header);
     }

@@ -62,6 +62,7 @@ public interface Headers extends Iterable<Header> {
 
     interface MutableHeaders extends Headers {
 
+        boolean put(@NotNull Header header);
         boolean add(@NotNull Header header);
 
         boolean remove(@NotNull Header header);

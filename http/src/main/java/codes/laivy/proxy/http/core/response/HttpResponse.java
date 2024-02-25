@@ -1,6 +1,8 @@
 package codes.laivy.proxy.http.core.response;
 
 import codes.laivy.proxy.http.core.HttpStatus;
+import codes.laivy.proxy.http.core.headers.Header;
+import codes.laivy.proxy.http.core.headers.Headers;
 import codes.laivy.proxy.http.core.message.Message;
 import codes.laivy.proxy.http.core.protocol.HttpVersion;
 import org.jetbrains.annotations.NotNull;
@@ -21,6 +23,13 @@ public interface HttpResponse {
     // Static initializers
 
     static @NotNull HttpResponse create(@NotNull HttpStatus status, @NotNull HttpVersion version, @NotNull Charset charset, @NotNull MutableHeaders headers, @Nullable Message message) {
+        return new HttpResponseImpl(status, version, charset, headers, message);
+    }
+
+    static @NotNull HttpResponse create(@NotNull HttpStatus status, @NotNull HttpVersion version, @NotNull Charset charset, @Nullable Message message) {
+        @NotNull MutableHeaders headers = Headers.createMutable();
+        headers.add(Header.create());
+
         return new HttpResponseImpl(status, version, charset, headers, message);
     }
 
