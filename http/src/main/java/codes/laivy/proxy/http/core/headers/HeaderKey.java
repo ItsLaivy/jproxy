@@ -97,6 +97,12 @@ public final class HeaderKey {
     public static @NotNull HeaderKey PROXY_AUTHORIZATION = HeaderKey.create("Proxy-Authorization");
 
     /**
+     * @see <a href="https://regexr.com/7sgub">RegExr Tests</a>
+     * @apiNote Last change: 25/02/2024 | 01:43 (GMT-3)
+     */
+    public static @NotNull HeaderKey DATE = HeaderKey.create("Date", Pattern.compile("(Mon|Tue|Wed|Thu|Fri|Sat|Sun), ([0-2][0-9]|3[0-1]) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (19[0-9]{2}|20[0-9]{2}) ([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9] GMT"));
+
+    /**
      * @see <a href="https://regexr.com/7sg4c">RegExr Tests</a>
      * @apiNote Last change: 23/02/2024 | 19:23 (GMT-3)
      */
