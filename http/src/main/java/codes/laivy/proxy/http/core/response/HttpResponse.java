@@ -1,7 +1,9 @@
 package codes.laivy.proxy.http.core.response;
 
+import codes.laivy.proxy.http.HttpProxy;
 import codes.laivy.proxy.http.core.HttpStatus;
 import codes.laivy.proxy.http.core.headers.Header;
+import codes.laivy.proxy.http.core.headers.HeaderKey;
 import codes.laivy.proxy.http.core.headers.Headers;
 import codes.laivy.proxy.http.core.message.Message;
 import codes.laivy.proxy.http.core.protocol.HttpVersion;
@@ -9,6 +11,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Date;
 
 import static codes.laivy.proxy.http.core.headers.Headers.MutableHeaders;
 
@@ -27,8 +34,11 @@ public interface HttpResponse {
     }
 
     static @NotNull HttpResponse create(@NotNull HttpStatus status, @NotNull HttpVersion version, @NotNull Charset charset, @Nullable Message message) {
+        @NotNull String server = HttpProxy.class.getPackage().getImplementationVersion() + System.getProperty("java.version") + System.getProperty("os.arch") + System.getProperty("os.version");
+
         @NotNull MutableHeaders headers = Headers.createMutable();
-        headers.add(Header.create());
+        headers.add(Header.create(HeaderKey.DATE, new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss").format(Date.from(Instant.now(Clock.system(ZoneId.of("UTC")))))));
+        headers.add(Header.create(HeaderKey.SERVER, server));
 
         return new HttpResponseImpl(status, version, charset, headers, message);
     }

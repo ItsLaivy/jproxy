@@ -16,198 +16,201 @@ public final class HeaderKey {
     public static final @NotNull Pattern NAME_FORMAT_REGEX = Pattern.compile("^[A-Za-z][A-Za-z0-9-]*$");
 
     public static @NotNull HeaderKey create(@NotNull String name) {
-        try {
-            @NotNull Field field = HeaderKey.class.getDeclaredField(name);
-            return (HeaderKey) field.get(null);
-        } catch (NoSuchFieldException | IllegalAccessException ignore) {
-        }
-
         return create(name, null);
     }
     public static @NotNull HeaderKey create(@NotNull String name, @Nullable Pattern pattern) {
+        try {
+            @NotNull Field field = HeaderKey.class.getDeclaredField(name.replace("-", "_").toLowerCase());
+            return (HeaderKey) field.get(null);
+        } catch (NoSuchFieldException | IllegalAccessException ignore) {
+        } catch (Throwable throwable) {
+            throw new IllegalStateException("Cannot create header key '" + name + "'");
+        }
+
         return new HeaderKey(name, pattern);
     }
 
     // Provided
 
-    public static @NotNull HeaderKey ACCEPT = HeaderKey.create("Accept");
-    public static @NotNull HeaderKey ACCEPT_CH = HeaderKey.create("Accept-CH");
+    public static @NotNull HeaderKey ACCEPT = new HeaderKey("Accept");
+    public static @NotNull HeaderKey ACCEPT_CH = new HeaderKey("Accept-CH");
     @Deprecated
-    public static @NotNull HeaderKey ACCEPT_CH_LIFETIME = HeaderKey.create("Accept-CH-Lifetime", Pattern.compile("^\\d+$"));
-    public static @NotNull HeaderKey ACCEPT_CHARSET = HeaderKey.create("Accept-Charset");
-    public static @NotNull HeaderKey ACCEPT_ENCODING = HeaderKey.create("Accept-Encoding");
-    public static @NotNull HeaderKey ACCEPT_LANGUAGE = HeaderKey.create("Accept-Language");
-    public static @NotNull HeaderKey ACCEPT_PATCH = HeaderKey.create("Accept-Patch");
+    public static @NotNull HeaderKey ACCEPT_CH_LIFETIME = new HeaderKey("Accept-CH-Lifetime", Pattern.compile("^\\d+$"));
+    public static @NotNull HeaderKey ACCEPT_CHARSET = new HeaderKey("Accept-Charset");
+    public static @NotNull HeaderKey ACCEPT_ENCODING = new HeaderKey("Accept-Encoding");
+    public static @NotNull HeaderKey ACCEPT_LANGUAGE = new HeaderKey("Accept-Language");
+    public static @NotNull HeaderKey ACCEPT_PATCH = new HeaderKey("Accept-Patch");
 
     /**
      * @see <a href="https://regexr.com/7sft5">RegExr Tests</a>
      * @apiNote Last change: 23/02/2024 | 16:36 (GMT-3)
      */
-    public static @NotNull HeaderKey ACCEPT_POST = HeaderKey.create("Accept-Post", Pattern.compile("^(?i)([a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(, *)?)+$"));
-    public static @NotNull HeaderKey ACCEPT_RANGES = HeaderKey.create("Accept-Ranges");
-    public static @NotNull HeaderKey ACCEPT_CONTROL_ALLOW_CREDENTIALS = HeaderKey.create("Access-Control-Allow-Credentials");
-    public static @NotNull HeaderKey ACCEPT_CONTROL_ALLOW_HEADERS = HeaderKey.create("Access-Control-Allow-Headers");
-    public static @NotNull HeaderKey ACCEPT_CONTROL_ALLOW_METHODS = HeaderKey.create("Access-Control-Allow-Methods");
-    public static @NotNull HeaderKey ACCEPT_CONTROL_ALLOW_ORIGIN = HeaderKey.create("Access-Control-Allow-Origin");
-    public static @NotNull HeaderKey ACCEPT_CONTROL_EXPOSE_HEADERS = HeaderKey.create("Access-Control-Expose-Headers");
-    public static @NotNull HeaderKey ACCEPT_CONTROL_MAX_AGE = HeaderKey.create("Access-Control-Max-Age");
-    public static @NotNull HeaderKey ACCEPT_CONTROL_REQUEST_HEADERS = HeaderKey.create("Access-Control-Request-Headers");
-    public static @NotNull HeaderKey ACCEPT_CONTROL_REQUEST_METHOD = HeaderKey.create("Access-Control-Request-Method");
-    public static @NotNull HeaderKey AGE = HeaderKey.create("Age", Pattern.compile("^\\d+$"));
+    public static @NotNull HeaderKey ACCEPT_POST = new HeaderKey("Accept-Post", Pattern.compile("^(?i)([a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(, *)?)+$"));
+    public static @NotNull HeaderKey ACCEPT_RANGES = new HeaderKey("Accept-Ranges");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_ALLOW_CREDENTIALS = new HeaderKey("Access-Control-Allow-Credentials");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_ALLOW_HEADERS = new HeaderKey("Access-Control-Allow-Headers");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_ALLOW_METHODS = new HeaderKey("Access-Control-Allow-Methods");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_ALLOW_ORIGIN = new HeaderKey("Access-Control-Allow-Origin");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_EXPOSE_HEADERS = new HeaderKey("Access-Control-Expose-Headers");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_MAX_AGE = new HeaderKey("Access-Control-Max-Age");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_REQUEST_HEADERS = new HeaderKey("Access-Control-Request-Headers");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_REQUEST_METHOD = new HeaderKey("Access-Control-Request-Method");
+    public static @NotNull HeaderKey AGE = new HeaderKey("Age", Pattern.compile("^\\d+$"));
     /**
      * @see <a href="https://regexr.com/7sftn">RegExr Tests</a>
      * @apiNote Last change: 23/02/2024 | 19:38 (GMT-3)
      */
-    public static @NotNull HeaderKey ALLOW = HeaderKey.create("Allow", Pattern.compile("^(?i)(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)(,[ ]?(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT))*?$"));
-    public static @NotNull HeaderKey ALT_SVC = HeaderKey.create("Alt-Svc");
-    public static @NotNull HeaderKey ALT_USED = HeaderKey.create("Alt-Used");
-    public static @NotNull HeaderKey AUTHORIZATION = HeaderKey.create("Authorization");
-    public static @NotNull HeaderKey CACHE_CONTROL = HeaderKey.create("Cache-Control");
-    public static @NotNull HeaderKey CLEAR_SITE_DATA = HeaderKey.create("Clear-Site-Data");
-    public static @NotNull HeaderKey CONNECTION = HeaderKey.create("Connection", Pattern.compile("^(?i)(keep-alive|close)(,\\s?[a-zA-Z0-9!#$%&'*+.^_`|~-]+)*$"));
-    public static @NotNull HeaderKey CONTENT_DISPOSITION = HeaderKey.create("Content-Disposition");
+    public static @NotNull HeaderKey ALLOW = new HeaderKey("Allow", Pattern.compile("^(?i)(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)(,[ ]?(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT))*?$"));
+    public static @NotNull HeaderKey ALT_SVC = new HeaderKey("Alt-Svc");
+    public static @NotNull HeaderKey ALT_USED = new HeaderKey("Alt-Used");
+    public static @NotNull HeaderKey AUTHORIZATION = new HeaderKey("Authorization");
+    public static @NotNull HeaderKey CACHE_CONTROL = new HeaderKey("Cache-Control");
+    public static @NotNull HeaderKey CLEAR_SITE_DATA = new HeaderKey("Clear-Site-Data");
+    public static @NotNull HeaderKey CONNECTION = new HeaderKey("Connection", Pattern.compile("^(?i)(keep-alive|close)(,\\s?[a-zA-Z0-9!#$%&'*+.^_`|~-]+)*$"));
+    public static @NotNull HeaderKey CONTENT_DISPOSITION = new HeaderKey("Content-Disposition");
     @Deprecated
-    public static @NotNull HeaderKey CONTENT_DPR = HeaderKey.create("Content-DPR");
-    public static @NotNull HeaderKey CONTENT_ENCODING = HeaderKey.create("Content-Encoding");
-    public static @NotNull HeaderKey CONTENT_LANGUAGE = HeaderKey.create("Content-Language");
-    public static @NotNull HeaderKey CONTENT_LENGTH = HeaderKey.create("Content-Length");
-    public static @NotNull HeaderKey CONTENT_LOCATION = HeaderKey.create("Content-Location");
-    public static @NotNull HeaderKey CONTENT_RANGE = HeaderKey.create("Content-Range");
-    public static @NotNull HeaderKey CONTENT_SECURITY_POLICY = HeaderKey.create("Content-Security-Policy");
-    public static @NotNull HeaderKey CONTENT_SECURITY_POLICY_REPORT_ONLY = HeaderKey.create("Content-Security-Policy-Report-Only");
+    public static @NotNull HeaderKey CONTENT_DPR = new HeaderKey("Content-DPR");
+    public static @NotNull HeaderKey CONTENT_ENCODING = new HeaderKey("Content-Encoding");
+    public static @NotNull HeaderKey CONTENT_LANGUAGE = new HeaderKey("Content-Language");
+    public static @NotNull HeaderKey CONTENT_LENGTH = new HeaderKey("Content-Length");
+    public static @NotNull HeaderKey CONTENT_LOCATION = new HeaderKey("Content-Location");
+    public static @NotNull HeaderKey CONTENT_RANGE = new HeaderKey("Content-Range");
+    public static @NotNull HeaderKey CONTENT_SECURITY_POLICY = new HeaderKey("Content-Security-Policy");
+    public static @NotNull HeaderKey CONTENT_SECURITY_POLICY_REPORT_ONLY = new HeaderKey("Content-Security-Policy-Report-Only");
     /**
      * @see <a href="https://regexr.com/7sfu0">RegExr Tests</a>
      * @apiNote Last change: 23/02/2024 | 19:06 (GMT-3)
      */
-    public static @NotNull HeaderKey CONTENT_TYPE = HeaderKey.create("Content-Type", Pattern.compile("^[a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(?:; ?(boundary=[a-zA-Z0-9-]+|charset=[a-zA-Z0-9-]+))?(?:; ?(boundary=[a-zA-Z0-9-]+|charset=[a-zA-Z0-9-]+))?$"));
-    public static @NotNull HeaderKey COOKIE = HeaderKey.create("Cookie");
-    public static @NotNull HeaderKey CRITICAL_CH = HeaderKey.create("Critical-CH");
-    public static @NotNull HeaderKey CROSS_ORIGIN_EMBEDDER_POLICY = HeaderKey.create("Cross-Origin-Embedder-Policy");
-    public static @NotNull HeaderKey CROSS_ORIGIN_OPENER_POLICY = HeaderKey.create("Cross-Origin-Opener-Policy");
-    public static @NotNull HeaderKey CROSS_ORIGIN_RESOURCE_POLICY = HeaderKey.create("Cross-Origin-Resource-Policy");
+    public static @NotNull HeaderKey CONTENT_TYPE = new HeaderKey("Content-Type", Pattern.compile("^[a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(?:; ?(boundary=[a-zA-Z0-9-]+|charset=[a-zA-Z0-9-]+))?(?:; ?(boundary=[a-zA-Z0-9-]+|charset=[a-zA-Z0-9-]+))?$"));
+    public static @NotNull HeaderKey COOKIE = new HeaderKey("Cookie");
+    public static @NotNull HeaderKey CRITICAL_CH = new HeaderKey("Critical-CH");
+    public static @NotNull HeaderKey CROSS_ORIGIN_EMBEDDER_POLICY = new HeaderKey("Cross-Origin-Embedder-Policy");
+    public static @NotNull HeaderKey CROSS_ORIGIN_OPENER_POLICY = new HeaderKey("Cross-Origin-Opener-Policy");
+    public static @NotNull HeaderKey CROSS_ORIGIN_RESOURCE_POLICY = new HeaderKey("Cross-Origin-Resource-Policy");
     /**
      * @see <a href="https://regexr.com/7sgub">RegExr Tests</a>
      * @apiNote Last change: 25/02/2024 | 01:43 (GMT-3)
      */
-    public static @NotNull HeaderKey DATE = HeaderKey.create("Date", Pattern.compile("(Mon|Tue|Wed|Thu|Fri|Sat|Sun), ([0-2][0-9]|3[0-1]) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (19[0-9]{2}|20[0-9]{2}) ([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9] GMT"));
-    public static @NotNull HeaderKey DEVICE_MEMORY = HeaderKey.create("Device-Memory");
+    public static @NotNull HeaderKey DATE = new HeaderKey("Date", Pattern.compile("(Mon|Tue|Wed|Thu|Fri|Sat|Sun), ([0-2][0-9]|3[0-1]) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (19[0-9]{2}|20[0-9]{2}) ([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9] GMT"));
+    public static @NotNull HeaderKey DEVICE_MEMORY = new HeaderKey("Device-Memory");
     @Deprecated
-    public static @NotNull HeaderKey DIGEST = HeaderKey.create("Digest");
+    public static @NotNull HeaderKey DIGEST = new HeaderKey("Digest");
     @Deprecated
-    public static @NotNull HeaderKey DNT = HeaderKey.create("DNT");
+    public static @NotNull HeaderKey DNT = new HeaderKey("DNT");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey DOWNLINK = HeaderKey.create("Downlink");
+    public static @NotNull HeaderKey DOWNLINK = new HeaderKey("Downlink");
     @Deprecated
-    public static @NotNull HeaderKey DPR = HeaderKey.create("DPR");
+    public static @NotNull HeaderKey DPR = new HeaderKey("DPR");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey EARLY_DATA = HeaderKey.create("Early-Data");
+    public static @NotNull HeaderKey EARLY_DATA = new HeaderKey("Early-Data");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey ECT = HeaderKey.create("ECT");
-    public static @NotNull HeaderKey ETAG = HeaderKey.create("ETag");
-    public static @NotNull HeaderKey EXPECT = HeaderKey.create("Expect");
-    public static @NotNull HeaderKey EXPECT_CT = HeaderKey.create("Expect-CT");
-    public static @NotNull HeaderKey EXPIRES = HeaderKey.create("Expires");
-    public static @NotNull HeaderKey FORWARDED = HeaderKey.create("Forwarded");
-    public static @NotNull HeaderKey FROM = HeaderKey.create("From");
-    public static @NotNull HeaderKey HOST = HeaderKey.create("Host");
-    public static @NotNull HeaderKey IF_MATCH = HeaderKey.create("If-Match");
-    public static @NotNull HeaderKey IF_MODIFIED_SINCE = HeaderKey.create("If-Modified-Since");
-    public static @NotNull HeaderKey IF_NONE_MATCH = HeaderKey.create("If-None-Match");
-    public static @NotNull HeaderKey IF_RANGE = HeaderKey.create("If-Range");
-    public static @NotNull HeaderKey IF_UNMODIFIED_SINCE = HeaderKey.create("If-Unmodified-Since");
-    public static @NotNull HeaderKey KEEP_ALIVE = HeaderKey.create("Keep-Alive");
+    public static @NotNull HeaderKey ECT = new HeaderKey("ECT");
+    public static @NotNull HeaderKey ETAG = new HeaderKey("ETag");
+    public static @NotNull HeaderKey EXPECT = new HeaderKey("Expect");
+    public static @NotNull HeaderKey EXPECT_CT = new HeaderKey("Expect-CT");
+    public static @NotNull HeaderKey EXPIRES = new HeaderKey("Expires");
+    public static @NotNull HeaderKey FORWARDED = new HeaderKey("Forwarded");
+    public static @NotNull HeaderKey FROM = new HeaderKey("From");
+    public static @NotNull HeaderKey HOST = new HeaderKey("Host");
+    public static @NotNull HeaderKey IF_MATCH = new HeaderKey("If-Match");
+    public static @NotNull HeaderKey IF_MODIFIED_SINCE = new HeaderKey("If-Modified-Since");
+    public static @NotNull HeaderKey IF_NONE_MATCH = new HeaderKey("If-None-Match");
+    public static @NotNull HeaderKey IF_RANGE = new HeaderKey("If-Range");
+    public static @NotNull HeaderKey IF_UNMODIFIED_SINCE = new HeaderKey("If-Unmodified-Since");
+    public static @NotNull HeaderKey KEEP_ALIVE = new HeaderKey("Keep-Alive");
     @Deprecated
-    public static @NotNull HeaderKey LARGE_ALLOCATION = HeaderKey.create("Large-Allocation");
-    public static @NotNull HeaderKey LAST_MODIFIED = HeaderKey.create("Last-Modified");
-    public static @NotNull HeaderKey LINK = HeaderKey.create("Link");
-    public static @NotNull HeaderKey LOCATION = HeaderKey.create("Location");
-    public static @NotNull HeaderKey MAX_FORWARDS = HeaderKey.create("Max-Forwards");
+    public static @NotNull HeaderKey LARGE_ALLOCATION = new HeaderKey("Large-Allocation");
+    public static @NotNull HeaderKey LAST_MODIFIED = new HeaderKey("Last-Modified");
+    public static @NotNull HeaderKey LINK = new HeaderKey("Link");
+    public static @NotNull HeaderKey LOCATION = new HeaderKey("Location");
+    public static @NotNull HeaderKey MAX_FORWARDS = new HeaderKey("Max-Forwards");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey NEL = HeaderKey.create("NEL");
-    public static @NotNull HeaderKey OBSERVE_BROWSING_TOPICS = HeaderKey.create("Observe-Browsing-Topics");
-    public static @NotNull HeaderKey ORIGIN = HeaderKey.create("Origin");
+    public static @NotNull HeaderKey NEL = new HeaderKey("NEL");
+    public static @NotNull HeaderKey OBSERVE_BROWSING_TOPICS = new HeaderKey("Observe-Browsing-Topics");
+    public static @NotNull HeaderKey ORIGIN = new HeaderKey("Origin");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey ORIGIN_AGENT_CLUSTER = HeaderKey.create("Origin-Agent-Cluster");
-    public static @NotNull HeaderKey PERMISSIONS_POLICY = HeaderKey.create("Permissions-Policy");
+    public static @NotNull HeaderKey ORIGIN_AGENT_CLUSTER = new HeaderKey("Origin-Agent-Cluster");
+    public static @NotNull HeaderKey PERMISSIONS_POLICY = new HeaderKey("Permissions-Policy");
     @Deprecated
-    public static @NotNull HeaderKey PRAGMA = HeaderKey.create("Pragma");
-    public static @NotNull HeaderKey PROXY_AUTHENTICATE = HeaderKey.create("Proxy-Authenticate");
-    public static @NotNull HeaderKey PROXY_AUTHORIZATION = HeaderKey.create("Proxy-Authorization");
-    public static @NotNull HeaderKey RANGE = HeaderKey.create("Range");
-    public static @NotNull HeaderKey REFERER = HeaderKey.create("Referer");
-    public static @NotNull HeaderKey REFERRER_POLICY = HeaderKey.create("Referrer-Policy");
+    public static @NotNull HeaderKey PRAGMA = new HeaderKey("Pragma");
+    public static @NotNull HeaderKey PROXY_AUTHENTICATE = new HeaderKey("Proxy-Authenticate");
+    public static @NotNull HeaderKey PROXY_AUTHORIZATION = new HeaderKey("Proxy-Authorization");
+    public static @NotNull HeaderKey RANGE = new HeaderKey("Range");
+    public static @NotNull HeaderKey REFERER = new HeaderKey("Referer");
+    public static @NotNull HeaderKey REFERRER_POLICY = new HeaderKey("Referrer-Policy");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey RTT = HeaderKey.create("RTT");
-    public static @NotNull HeaderKey SAVE_DATA = HeaderKey.create("Save-Data");
-    public static @NotNull HeaderKey SEC_BROWSING_TOPICS = HeaderKey.create("Sec-Browsing-Topics");
+    public static @NotNull HeaderKey RTT = new HeaderKey("RTT");
+    public static @NotNull HeaderKey SAVE_DATA = new HeaderKey("Save-Data");
+    public static @NotNull HeaderKey SEC_BROWSING_TOPICS = new HeaderKey("Sec-Browsing-Topics");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SEC_CH_PREFERS_COLOR_SCHEME = HeaderKey.create("Sec-CH-Prefers-Color-Scheme");
+    public static @NotNull HeaderKey SEC_CH_PREFERS_COLOR_SCHEME = new HeaderKey("Sec-CH-Prefers-Color-Scheme");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SEC_CH_PREFERS_REDUCED_MOTION = HeaderKey.create("Sec-CH-Prefers-Reduced-Motion");
+    public static @NotNull HeaderKey SEC_CH_PREFERS_REDUCED_MOTION = new HeaderKey("Sec-CH-Prefers-Reduced-Motion");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SEC_CH_PREFERS_REDUCED_TRANSPARENCY = HeaderKey.create("Sec-CH-Prefers-Reduced-Transparency");
+    public static @NotNull HeaderKey SEC_CH_PREFERS_REDUCED_TRANSPARENCY = new HeaderKey("Sec-CH-Prefers-Reduced-Transparency");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SEC_CH_UA = HeaderKey.create("Sec-CH-UA");
+    public static @NotNull HeaderKey SEC_CH_UA = new HeaderKey("Sec-CH-UA");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SEC_CH_UA_ARCH = HeaderKey.create("Sec-CH-UA-Arch");
+    public static @NotNull HeaderKey SEC_CH_UA_ARCH = new HeaderKey("Sec-CH-UA-Arch");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SEC_CH_UA_BITNESS = HeaderKey.create("Sec-CH-UA-Bitness");
+    public static @NotNull HeaderKey SEC_CH_UA_BITNESS = new HeaderKey("Sec-CH-UA-Bitness");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SEC_CH_UA_FULL_VERSION = HeaderKey.create("Sec-CH-UA-Full-Version");
+    public static @NotNull HeaderKey SEC_CH_UA_FULL_VERSION = new HeaderKey("Sec-CH-UA-Full-Version");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SEC_CH_UA_FULL_VERSION_LIST = HeaderKey.create("Sec-CH-UA-Full-Version-List");
+    public static @NotNull HeaderKey SEC_CH_UA_FULL_VERSION_LIST = new HeaderKey("Sec-CH-UA-Full-Version-List");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SEC_CH_UA_MOBILE = HeaderKey.create("Sec-CH-UA-Mobile");
+    public static @NotNull HeaderKey SEC_CH_UA_MOBILE = new HeaderKey("Sec-CH-UA-Mobile");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SEC_CH_UA_MODEL = HeaderKey.create("Sec-CH-UA-Model");
+    public static @NotNull HeaderKey SEC_CH_UA_MODEL = new HeaderKey("Sec-CH-UA-Model");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SEC_CH_UA_PLATFORM = HeaderKey.create("Sec-CH-UA-Platform");
+    public static @NotNull HeaderKey SEC_CH_UA_PLATFORM = new HeaderKey("Sec-CH-UA-Platform");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SEC_CH_UA_PLATFORM_VERSION = HeaderKey.create("Sec-CH-UA-Platform-Version");
-    public static @NotNull HeaderKey SEC_FETCH_DEST = HeaderKey.create("Sec-Fetch-Dest");
-    public static @NotNull HeaderKey SEC_FETCH_MODE = HeaderKey.create("Sec-Fetch-Mode");
-    public static @NotNull HeaderKey SEC_FETCH_SITE = HeaderKey.create("Sec-Fetch-Site");
-    public static @NotNull HeaderKey SEC_FETCH_USER = HeaderKey.create("Sec-Fetch-User");
+    public static @NotNull HeaderKey SEC_CH_UA_PLATFORM_VERSION = new HeaderKey("Sec-CH-UA-Platform-Version");
+    public static @NotNull HeaderKey SEC_FETCH_DEST = new HeaderKey("Sec-Fetch-Dest");
+    public static @NotNull HeaderKey SEC_FETCH_MODE = new HeaderKey("Sec-Fetch-Mode");
+    public static @NotNull HeaderKey SEC_FETCH_SITE = new HeaderKey("Sec-Fetch-Site");
+    public static @NotNull HeaderKey SEC_FETCH_USER = new HeaderKey("Sec-Fetch-User");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SEC_GPC = HeaderKey.create("Sec-GPC");
-    public static @NotNull HeaderKey SEC_PURPOSE = HeaderKey.create("Sec-Purpose");
-    public static @NotNull HeaderKey SEC_WEBSOCKET_ACCEPT = HeaderKey.create("Sec-WebSocket-Accept");
-    public static @NotNull HeaderKey SERVER = HeaderKey.create("Server");
-    public static @NotNull HeaderKey SERVER_TIMING = HeaderKey.create("Server-Timing");
-    public static @NotNull HeaderKey SERVICE_WORKER_NAVIGATION_PRELOAD = HeaderKey.create("Service-Worker-Navigation-Preload");
-    public static @NotNull HeaderKey SET_COOKIE = HeaderKey.create("Set-Cookie");
+    public static @NotNull HeaderKey SEC_GPC = new HeaderKey("Sec-GPC");
+    public static @NotNull HeaderKey SEC_PURPOSE = new HeaderKey("Sec-Purpose");
+    public static @NotNull HeaderKey SEC_WEBSOCKET_ACCEPT = new HeaderKey("Sec-WebSocket-Accept");
+    public static @NotNull HeaderKey SERVER = new HeaderKey("Server");
+    public static @NotNull HeaderKey SERVER_TIMING = new HeaderKey("Server-Timing");
+    public static @NotNull HeaderKey SERVICE_WORKER_NAVIGATION_PRELOAD = new HeaderKey("Service-Worker-Navigation-Preload");
+    public static @NotNull HeaderKey SET_COOKIE = new HeaderKey("Set-Cookie");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey SET_LOGIN = HeaderKey.create("Set-Login");
-    public static @NotNull HeaderKey SOURCEMAP = HeaderKey.create("SourceMap");
-    public static @NotNull HeaderKey STRICT_TRANSPORT_SECURITY = HeaderKey.create("Strict-Transport-Security");
-    public static @NotNull HeaderKey SUPPORTS_LOADING_MODE = HeaderKey.create("Supports-Loading-Mode");
+    public static @NotNull HeaderKey SET_LOGIN = new HeaderKey("Set-Login");
+    public static @NotNull HeaderKey SOURCEMAP = new HeaderKey("SourceMap");
+    public static @NotNull HeaderKey STRICT_TRANSPORT_SECURITY = new HeaderKey("Strict-Transport-Security");
+    public static @NotNull HeaderKey SUPPORTS_LOADING_MODE = new HeaderKey("Supports-Loading-Mode");
     @ApiStatus.Experimental
-    public static @NotNull HeaderKey TE = HeaderKey.create("TE");
-    public static @NotNull HeaderKey TIMING_ALLOW_ORIGIN = HeaderKey.create("Timing-Allow-Origin");
+    public static @NotNull HeaderKey TE = new HeaderKey("TE");
+    public static @NotNull HeaderKey TIMING_ALLOW_ORIGIN = new HeaderKey("Timing-Allow-Origin");
     @Deprecated
-    public static @NotNull HeaderKey TK = HeaderKey.create("Tk");
-    public static @NotNull HeaderKey TRAILER = HeaderKey.create("Trailer");
-    public static @NotNull HeaderKey TRANSFER_ENCODING = HeaderKey.create("Transfer-Encoding");
+    public static @NotNull HeaderKey TK = new HeaderKey("Tk");
+    public static @NotNull HeaderKey TRAILER = new HeaderKey("Trailer");
+    public static @NotNull HeaderKey TRANSFER_ENCODING = new HeaderKey("Transfer-Encoding");
+    public static @NotNull HeaderKey ANONYMOUS_HEADER = new HeaderKey("X-Anonymous", Pattern.compile("^(?i)(true|false)$"));
 
     /**
      * @see <a href="https://regexr.com/7sg4c">RegExr Tests</a>
      * @apiNote Last change: 23/02/2024 | 19:23 (GMT-3)
      */
-    public static @NotNull HeaderKey UPGRADE = HeaderKey.create("Upgrade", Pattern.compile("^[a-zA-Z-_]+(?:/[a-zA-Z0-9-_.@]+)?(?:,\\s?[a-zA-Z-_]+(?:/[a-zA-Z0-9-_.@]+)?)*$"));
-    public static @NotNull HeaderKey UPGRADE_INSECURE_REQUESTS = HeaderKey.create("Upgrade-Insecure-Requests");
-    public static @NotNull HeaderKey USER_AGENT = HeaderKey.create("User-Agent");
-    public static @NotNull HeaderKey VARY = HeaderKey.create("Vary");
-    public static @NotNull HeaderKey VIA = HeaderKey.create("Via");
+    public static @NotNull HeaderKey UPGRADE = new HeaderKey("Upgrade", Pattern.compile("^[a-zA-Z-_]+(?:/[a-zA-Z0-9-_.@]+)?(?:,\\s?[a-zA-Z-_]+(?:/[a-zA-Z0-9-_.@]+)?)*$"));
+    public static @NotNull HeaderKey UPGRADE_INSECURE_REQUESTS = new HeaderKey("Upgrade-Insecure-Requests");
+    public static @NotNull HeaderKey USER_AGENT = new HeaderKey("User-Agent");
+    public static @NotNull HeaderKey VARY = new HeaderKey("Vary");
+    public static @NotNull HeaderKey VIA = new HeaderKey("Via");
     @Deprecated
-    public static @NotNull HeaderKey VIEWPORT_WIDTH = HeaderKey.create("Viewport-Width");
+    public static @NotNull HeaderKey VIEWPORT_WIDTH = new HeaderKey("Viewport-Width");
     @Deprecated
-    public static @NotNull HeaderKey WANT_DIGEST = HeaderKey.create("Want-Digest");
+    public static @NotNull HeaderKey WANT_DIGEST = new HeaderKey("Want-Digest");
     @Deprecated
-    public static @NotNull HeaderKey WARNING = HeaderKey.create("Warning");
+    public static @NotNull HeaderKey WARNING = new HeaderKey("Warning");
     @Deprecated
-    public static @NotNull HeaderKey WIDTH = HeaderKey.create("Width");
-    public static @NotNull HeaderKey WWW_AUTHENTICATE = HeaderKey.create("WWW-Authenticate");
-    public static @NotNull HeaderKey PROXY_CONNECTION = HeaderKey.create("Proxy-Connection", Pattern.compile("^(?i)(keep-alive|close)(,\\s?[a-zA-Z0-9!#$%&'*+.^_`|~-]+)*$"));
+    public static @NotNull HeaderKey WIDTH = new HeaderKey("Width");
+    public static @NotNull HeaderKey WWW_AUTHENTICATE = new HeaderKey("WWW-Authenticate");
+    public static @NotNull HeaderKey PROXY_CONNECTION = new HeaderKey("Proxy-Connection", Pattern.compile("^(?i)(keep-alive|close)(,\\s?[a-zA-Z0-9!#$%&'*+.^_`|~-]+)*$"));
 
     // todo: add more provided headers
 
@@ -216,6 +219,9 @@ public final class HeaderKey {
     private final @NotNull String name;
     private final @Nullable Pattern pattern;
 
+    private HeaderKey(@NotNull String name) {
+        this(name, null);
+    }
     private HeaderKey(@NotNull String name, @Nullable Pattern pattern) {
         this.name = name;
         this.pattern = pattern;

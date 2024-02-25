@@ -9,7 +9,7 @@ import org.junit.jupiter.api.*;
 
 import java.net.InetSocketAddress;
 
-// todo: exclusive http proxy server for tests that verify headers and data
+// todo: exclusive http server for tests that verify headers and data
 // todo: tests with JSoup#newSession
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public final class HttpProxyTest {
