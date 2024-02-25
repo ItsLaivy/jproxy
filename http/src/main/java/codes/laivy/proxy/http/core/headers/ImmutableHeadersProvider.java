@@ -11,7 +11,6 @@ final class ImmutableHeadersProvider implements Headers {
     private final @NotNull Header[] headers;
 
     public ImmutableHeadersProvider(@NotNull Header[] headers) {
-        // todo: test this
         this.headers = Arrays.copyOf(headers, headers.length);
     }
 

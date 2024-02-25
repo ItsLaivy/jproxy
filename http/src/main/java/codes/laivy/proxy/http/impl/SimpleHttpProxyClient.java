@@ -205,6 +205,10 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
         @NotNull CompletableFuture<HttpResponse> future = new CompletableFuture<>();
 
         @NotNull HttpRequest clone = HttpRequest.create(request.getVersion(), request.getMethod(), null, request.getUri(), request.getCharset(), request.getHeaders(), request.getMessage());
+        if (request.getAuthority() != null && request.getAuthority().getUserInfo() != null) {
+            clone.getHeaders().add(Header.create(HeaderKey.AUTHORIZATION, "Basic " + request.getAuthority().getUserInfo()));
+        }
+
         System.out.println("Clone: '" + new String(clone.getVersion().getFactory().getRequest().wrap(clone)).replaceAll("\r", "").replaceAll("\n", " ") + "'");
 
         boolean anonymous = clone.getHeaders().contains(HeaderKey.ANONYMOUS_HEADER) && clone.getHeaders().last(HeaderKey.ANONYMOUS_HEADER).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("true");
@@ -231,7 +235,7 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
 
                     try {
                         @NotNull URIAuthority authority = URIAuthority.parse(clone.getHeaders().first(HeaderKey.HOST).orElseThrow(NullPointerException::new).getValue());
-                        @Nullable Connection connection = getConnection(InetSocketAddress.createUnresolved(authority.getHostName(), authority.getPort())).orElse(null);
+                        @Nullable Connection connection = getConnection(authority.getAddress()).orElse(null);
 
                         if (connection != null) {
                             future.complete(connection.write(clone).get());

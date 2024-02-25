@@ -23,12 +23,7 @@ public final class URIAuthority {
     public static final int DEFAULT_HTTPS_PORT = 443;
 
     public static boolean isUriAuthority(@NotNull String uri) {
-        try {
-            parse(uri);
-            return true;
-        } catch (URISyntaxException | UnknownHostException e) {
-            return false;
-        }
+        return PARSE_PATTERN.matcher(uri).matches();
     }
 
     public static @NotNull URIAuthority parse(@NotNull String uri) throws URISyntaxException, UnknownHostException {
@@ -49,7 +44,13 @@ public final class URIAuthority {
                 throw new URISyntaxException(uri, throwable.getMessage(), matcher.start(3));
             }
 
-            hostName = IDN.toASCII(matcher.group(4));
+            @NotNull String hostGroup = matcher.group(4);
+
+            if (hostGroup.contains("@")) {
+                throw new URISyntaxException(uri, "invalid user info information", matcher.start(4));
+            }
+
+            hostName = IDN.toASCII(hostGroup);
 
             if (matcher.group(5) != null) {
                 port = Integer.parseInt(matcher.group(5).substring(1));
@@ -113,7 +114,6 @@ public final class URIAuthority {
 
     @Override
     public @NotNull String toString() {
-        // todo: URIAuthority#toString
         return getHostName() + ":" + getPort();
     }
 

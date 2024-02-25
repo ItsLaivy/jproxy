@@ -212,8 +212,6 @@ public final class HeaderKey {
     public static @NotNull HeaderKey WWW_AUTHENTICATE = new HeaderKey("WWW-Authenticate");
     public static @NotNull HeaderKey PROXY_CONNECTION = new HeaderKey("Proxy-Connection", Pattern.compile("^(?i)(keep-alive|close)(,\\s?[a-zA-Z0-9!#$%&'*+.^_`|~-]+)*$"));
 
-    // todo: add more provided headers
-
     // Object
 
     private final @NotNull String name;
