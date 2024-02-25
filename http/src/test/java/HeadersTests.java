@@ -10,7 +10,7 @@ public final class HeadersTests {
         assert key.getPattern() != null;
 
         @NotNull String[] texts = new String[] {
-                "application/json;q=0.9, video/mpv;",
+                "application/json;q=0.9, video/mpv",
                 "text/html; q=0.9, text/plain; q=0.8",
                 "text/css; q=0.8, application/javascript",
                 "image/gif; q=0.7, image/webp; q=0.6",

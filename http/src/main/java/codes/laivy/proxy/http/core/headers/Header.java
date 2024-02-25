@@ -47,7 +47,7 @@ public interface Header extends NameValuePair {
             }
             @Override
             public int hashCode() {
-                return Objects.hash(getName(), getValue());
+                return Objects.hash(getName());
             }
         };
     }
