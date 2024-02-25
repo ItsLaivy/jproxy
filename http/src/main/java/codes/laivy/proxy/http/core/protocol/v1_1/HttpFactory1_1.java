@@ -16,6 +16,7 @@ import codes.laivy.proxy.http.core.request.HttpRequest;
 import codes.laivy.proxy.http.core.response.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnknownNullability;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -24,6 +25,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 class HttpFactory1_1 implements HttpFactory {
@@ -59,67 +61,84 @@ class HttpFactory1_1 implements HttpFactory {
 
             // Content
             @NotNull String[] content = string.split("\r\n\r\n", 2);
-            // Request line
-            @NotNull String requestLine = content[0].split("\r\n", 2)[0];
-            @NotNull String[] parts = requestLine.split(" ");
+            @NotNull String request = content[0];
+
+            @UnknownNullability URIAuthority authority = null;
+            @NotNull URI uri;
 
             @NotNull Method method;
-            @Nullable URIAuthority authority;
-            @NotNull URI uri;
+
+            // Get connection address
+            @NotNull String temp1 = request.split(" ", 3)[1];
+            @NotNull Matcher matcher = Pattern.compile("(?i)\\r\\n\\s*Host: ?([a-zA-Z0-9:._-]*)\\s*\\r\\n").matcher(request);
+
+            try {
+                if (!matcher.find()) {
+                    throw new ParseException("missing '" + HeaderKey.HOST + "' header (required for all " + getVersion() + " requests)", 0);
+                }
+
+                if (URIAuthority.isUriAuthority(temp1)) {
+                    try {
+                        authority = URIAuthority.parse(temp1);
+                    } catch (UnknownHostException | URISyntaxException e) {
+                        throw new ParseException("cannot retrieve uri authority: " + e.getMessage(), getVersion().toString().length());
+                    }
+
+                    uri = parseUri(temp1);
+                } else {
+                    try { // Get by host header
+                        @NotNull String hostName = matcher.group(0).replaceAll("(?i)(\\s)?(\\\\r\\\\n)??", "");
+                        authority = URIAuthority.parse(hostName);
+                    } catch (UnknownHostException | URISyntaxException e) {
+                        throw new ParseException("cannot retrieve uri authority: " + e.getMessage(), getVersion().toString().length());
+                    }
+
+                    uri = new URI(temp1);
+                }
+            } catch (@NotNull URISyntaxException e) {
+                throw new ParseException(e.getMessage(), getVersion().toString().length());
+            }
+
+            // Request line
+            final @NotNull String[] temp2 = request.split("\r\n", 2);
+            @NotNull String requestLine = temp2[0];
+            @NotNull String[] headers = temp2[1].split("\r\n");
+
+            @NotNull String[] parts = requestLine.split(" ");
+
+            // Retrieve headers
+            @NotNull MutableHeaders headerList = codes.laivy.proxy.http.core.headers.Headers.createMutable();
+
+            for (@NotNull String headerBrute : headers) {
+                try {
+                    headerList.add(getHeaders().parse(headerBrute.getBytes()));
+                } catch (@NotNull Throwable throwable) {
+                    throw new ParseException("illegal headers format", 0);
+                }
+            }
+
+            // Validate host header
+            @NotNull Header[] hostHeaders = headerList.get(HeaderKey.HOST);
+            if (hostHeaders.length > 1) {
+                throw new ParseException("multiples '" + HeaderKey.HOST + "' headers", 0);
+            }
 
             try {
                 method = Method.valueOf(parts[0].toUpperCase());
             } catch (@NotNull IllegalArgumentException e) {
                 throw new ParseException("cannot parse '" + parts[0] + "' as a valid " + getVersion() + " request method", 0);
             }
-
-            try {
-                @NotNull String uriString = parts[1];
-
-                if (URIAuthority.isUriAuthority(uriString)) {
-                    authority = URIAuthority.parse(uriString);
-                    uri = parseUri(uriString);
-                } else {
-                    authority = null;
-                    uri = new URI(uriString);
-                }
-            } catch (UnknownHostException e) {
-                throw new ParseException("cannot parse '" + parts[1] + "' as a valid host", 0);
-            } catch (URISyntaxException e) {
-                throw new ParseException("cannot parse '" + parts[1] + "' as a valid http uri", 0);
-            }
-
-            // Retrieve headers
-            @NotNull MutableHeaders headerList = codes.laivy.proxy.http.core.headers.Headers.createMutable();
-            // todo: if doesn't have headers, it will throw an exception
-            @NotNull String[] headerSection = content[0].split("\r\n", 2)[1].split("\r\n");
-
-            for (@NotNull String headerBrute : headerSection) {
-                headerList.add(getHeaders().parse(headerBrute.getBytes()));
-            }
-
-            // Validate host header
-            @NotNull Header[] hostHeaders = headerList.get(HeaderKey.HOST);
-            if (hostHeaders.length == 0) {
-                throw new ParseException("missing '" + HeaderKey.HOST + "' header", 0);
-            } else if (hostHeaders.length > 1) {
-                throw new ParseException("multiples '" + HeaderKey.HOST + "' headers", 0);
-            }
-
-            if (authority == null) {
-                try {
-                    authority = URIAuthority.parse(hostHeaders[0].getValue());
-                } catch (@NotNull Throwable throwable) {
-                    throw new ParseException("cannot parse '" + HeaderKey.HOST + "' into a valid address: " + throwable.getMessage(), 0);
-                }
-            }
             // Charset
             @NotNull Charset charset = StandardCharsets.UTF_8;
 
             @NotNull Optional<Header> optional = headerList.first(HeaderKey.CONTENT_TYPE);
             if (optional.isPresent()) {
-                @NotNull ContentType type = ContentType.parse(optional.get().getValue());
-                charset = type.getCharset() != null ? type.getCharset() : StandardCharsets.UTF_8;
+                try {
+                    @NotNull ContentType type = ContentType.parse(optional.get().getValue());
+                    charset = type.getCharset() != null ? type.getCharset() : StandardCharsets.UTF_8;
+                } catch (@NotNull Throwable throwable) {
+                    throw new ParseException("cannot parse content type: " + throwable.getMessage(), 0);
+                }
             }
             // Message
             @Nullable Message message = null;
@@ -201,14 +220,23 @@ class HttpFactory1_1 implements HttpFactory {
             // todo: if doesn't have headers, it will throw an exception
             @NotNull String[] headerSection = content[0].split("\r\n", 2)[1].split("\r\n");
             for (@NotNull String header : headerSection) {
-                headerList.add(getHeaders().parse(header.getBytes()));
+                try {
+                    headerList.add(getHeaders().parse(header.getBytes()));
+                } catch (ParseException e) {
+                    throw new RuntimeException(e);
+                }
             }
             // Charset
             @NotNull Charset charset = StandardCharsets.UTF_8;
 
             @NotNull Optional<Header> optional = headerList.first(HeaderKey.CONTENT_TYPE);
             if (optional.isPresent()) {
-                @NotNull ContentType type = ContentType.parse(optional.get().getValue());
+                @NotNull ContentType type = null;
+                try {
+                    type = ContentType.parse(optional.get().getValue());
+                } catch (ParseException e) {
+                    throw new RuntimeException(e);
+                }
                 charset = type.getCharset() != null ? type.getCharset() : StandardCharsets.UTF_8;
             }
             // Message
