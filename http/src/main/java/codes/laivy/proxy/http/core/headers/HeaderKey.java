@@ -29,68 +29,56 @@ public final class HeaderKey {
 
     // Provided
 
-    /**
-     * @see <a href="https://regexr.com/7sfol">RegExr Tests</a>
-     * @apiNote Last change: 23/02/2024 | 16:33 (GMT-3)
-     * @apiNote This regex has some syntax issues that should be fixed later
-     */
-    public static @NotNull HeaderKey ACCEPT = HeaderKey.create("Accept", Pattern.compile("^(?i)([a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(; ?q=(0(\\.\\d{1,2})?|1(\\.0{1,2})?))?(, *)?)+$"));
-
+    public static @NotNull HeaderKey ACCEPT = HeaderKey.create("Accept");
     public static @NotNull HeaderKey ACCEPT_CH = HeaderKey.create("Accept-CH");
+    @Deprecated
     public static @NotNull HeaderKey ACCEPT_CH_LIFETIME = HeaderKey.create("Accept-CH-Lifetime", Pattern.compile("^\\d+$"));
-
-    /**
-     * @see <a href="https://regexr.com/7sfpg">RegExr Tests</a>
-     * @apiNote Last change: 23/02/2024 | 16:19 (GMT-3)
-     * @apiNote This regex has some syntax issues that should be fixed later
-     */
-    public static @NotNull HeaderKey ACCEPT_CHARSET = HeaderKey.create("Accept-Charset", Pattern.compile("^(?i)([\\w\\-]+(; ?q=(0(\\.\\d{1,2})?|1(\\.0{1,2})?))?(, *)?)+$"));
-
-    /**
-     * @see <a href="https://regexr.com/7sfqn">RegExr Tests</a>
-     * @apiNote Last change: 23/02/2024 | 16:17 (GMT-3)
-     * @apiNote This regex has some syntax issues that should be fixed later
-     */
-    public static @NotNull HeaderKey ACCEPT_ENCODING = HeaderKey.create("Accept-Encoding", Pattern.compile("^(?i)([\\w\\-*]+(; ?q=(0(\\.\\d{1,2})?|1(\\.0{1,2})?))?(, *)?)+$"));
-
-    /**
-     * @see <a href="https://regexr.com/7sfs4">RegExr Tests</a>
-     * @apiNote Last change: 23/02/2024 | 16:23 (GMT-3)
-     * @apiNote This regex has some syntax issues that should be fixed later
-     */
-    public static @NotNull HeaderKey ACCEPT_LANGUAGE = HeaderKey.create("Accept-Language", Pattern.compile("^(?i)([\\w\\-*]+(; ?q=(0(\\.\\d{1,2})?|1(\\.0{1,2})?))?(, *)?)+$"));
-
-    /**
-     * @see <a href="https://regexr.com/7sfsd">RegExr Tests</a>
-     * @apiNote Last change: 23/02/2024 | 16:30 (GMT-3)
-     * @apiNote This regex has some syntax issues that should be fixed later
-     */
-    public static @NotNull HeaderKey ACCEPT_PATCH = HeaderKey.create("Accept-Patch", Pattern.compile("^(?i)([a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(; ?charset=([\\w\\-*]+?(, *)?))?(, *)?)+$"));
+    public static @NotNull HeaderKey ACCEPT_CHARSET = HeaderKey.create("Accept-Charset");
+    public static @NotNull HeaderKey ACCEPT_ENCODING = HeaderKey.create("Accept-Encoding");
+    public static @NotNull HeaderKey ACCEPT_LANGUAGE = HeaderKey.create("Accept-Language");
+    public static @NotNull HeaderKey ACCEPT_PATCH = HeaderKey.create("Accept-Patch");
 
     /**
      * @see <a href="https://regexr.com/7sft5">RegExr Tests</a>
      * @apiNote Last change: 23/02/2024 | 16:36 (GMT-3)
      */
     public static @NotNull HeaderKey ACCEPT_POST = HeaderKey.create("Accept-Post", Pattern.compile("^(?i)([a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(, *)?)+$"));
-
+    public static @NotNull HeaderKey ACCEPT_RANGES = HeaderKey.create("Accept-Ranges");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_ALLOW_CREDENTIALS = HeaderKey.create("Access-Control-Allow-Credentials");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_ALLOW_HEADERS = HeaderKey.create("Access-Control-Allow-Headers");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_ALLOW_METHODS = HeaderKey.create("Access-Control-Allow-Methods");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_ALLOW_ORIGIN = HeaderKey.create("Access-Control-Allow-Origin");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_EXPOSE_HEADERS = HeaderKey.create("Access-Control-Expose-Headers");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_MAX_AGE = HeaderKey.create("Access-Control-Max-Age");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_REQUEST_HEADERS = HeaderKey.create("Access-Control-Request-Headers");
+    public static @NotNull HeaderKey ACCEPT_CONTROL_REQUEST_METHOD = HeaderKey.create("Access-Control-Request-Method");
     public static @NotNull HeaderKey AGE = HeaderKey.create("Age", Pattern.compile("^\\d+$"));
-
     /**
      * @see <a href="https://regexr.com/7sftn">RegExr Tests</a>
      * @apiNote Last change: 23/02/2024 | 19:38 (GMT-3)
      */
     public static @NotNull HeaderKey ALLOW = HeaderKey.create("Allow", Pattern.compile("^(?i)(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)(,[ ]?(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT))*?$"));
-
+    public static @NotNull HeaderKey ALT_SVC = HeaderKey.create("Alt-Svc");
+    public static @NotNull HeaderKey ALT_USED = HeaderKey.create("Alt-Used");
     public static @NotNull HeaderKey AUTHORIZATION = HeaderKey.create("Authorization");
-    public static @NotNull HeaderKey CONNECTION = HeaderKey.create("Connection", Pattern.compile("^(?i)(close|keep-alive|upgrade)$"));
-    public static @NotNull HeaderKey PROXY_CONNECTION = HeaderKey.create("Proxy-Connection", Pattern.compile("^(?i)(close|keep-alive)$"));
-
+    public static @NotNull HeaderKey CACHE_CONTROL = HeaderKey.create("Cache-Control");
+    public static @NotNull HeaderKey CLEAR_SITE_DATA = HeaderKey.create("Clear-Site-Data");
+    public static @NotNull HeaderKey CONNECTION = HeaderKey.create("Connection", Pattern.compile("^(?i)(keep-alive|close)(,\\s?[a-zA-Z0-9!#$%&'*+.^_`|~-]+)*$"));
+    public static @NotNull HeaderKey CONTENT_DISPOSITION = HeaderKey.create("Content-Disposition");
+    public static @NotNull HeaderKey CONTENT_DISPOSITION = HeaderKey.create("Content-DPR");
+    public static @NotNull HeaderKey CONTENT_ENCODING = HeaderKey.create("Content-Encoding");
+    public static @NotNull HeaderKey CONTENT_LANGUAGE = HeaderKey.create("Content-Language");
+    public static @NotNull HeaderKey CONTENT_LENGTH = HeaderKey.create("Content-Length");
+    public static @NotNull HeaderKey CONTENT_LOCATION = HeaderKey.create("Content-Location");
+    public static @NotNull HeaderKey CONTENT_RANGE = HeaderKey.create("Content-Range");
+    public static @NotNull HeaderKey CONTENT_SECURITY_POLICY = HeaderKey.create("Content-Security-Policy");
+    public static @NotNull HeaderKey CONTENT_SECURITY_POLICY_REPORT_ONLY = HeaderKey.create("Content-Security-Policy-Report-Only");
     /**
      * @see <a href="https://regexr.com/7sfu0">RegExr Tests</a>
      * @apiNote Last change: 23/02/2024 | 19:06 (GMT-3)
      */
     public static @NotNull HeaderKey CONTENT_TYPE = HeaderKey.create("Content-Type", Pattern.compile("^[a-zA-Z0-9+-.*]+/[a-zA-Z0-9+-.*]+(?:; ?(boundary=[a-zA-Z0-9-]+|charset=[a-zA-Z0-9-]+))?(?:; ?(boundary=[a-zA-Z0-9-]+|charset=[a-zA-Z0-9-]+))?$"));
-
+    public static @NotNull HeaderKey PROXY_CONNECTION = HeaderKey.create("Proxy-Connection", Pattern.compile("^(?i)(keep-alive|close)(,\\s?[a-zA-Z0-9!#$%&'*+.^_`|~-]+)*$"));
     public static @NotNull HeaderKey HOST = HeaderKey.create("Host", Pattern.compile("^([a-zA-Z0-9.-]+)(:([0-9]+))?$"));
     public static @NotNull HeaderKey WWW_AUTHENTICATE = HeaderKey.create("WWW-Authenticate");
     public static @NotNull HeaderKey PROXY_AUTHENTICATE = HeaderKey.create("Proxy-Authenticate");
