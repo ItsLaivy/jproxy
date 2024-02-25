@@ -3,7 +3,7 @@ package codes.laivy.proxy.http;
 import codes.laivy.proxy.ProxyServer;
 import codes.laivy.proxy.http.connection.HttpProxyClient;
 import codes.laivy.proxy.http.core.HttpAuthorization;
-import codes.laivy.proxy.http.impl.HttpProxyImpl;
+import codes.laivy.proxy.http.impl.SimpleHttpProxy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,7 +20,7 @@ public abstract class HttpProxy extends ProxyServer implements AutoCloseable {
     }
 
     public static @NotNull HttpProxy create(@NotNull InetSocketAddress address, @Nullable HttpAuthorization authorization) throws IOException {
-        return new HttpProxyImpl(address, authorization);
+        return new SimpleHttpProxy(address, authorization);
     }
 
     // Object

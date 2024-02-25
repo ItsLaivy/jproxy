@@ -16,12 +16,12 @@ import java.util.Set;
 
 class HttpProxyImplThread extends Thread {
 
-    private final @NotNull HttpProxyImpl proxy;
+    private final @NotNull SimpleHttpProxy proxy;
 
     private final @NotNull Selector selector;
     private final @NotNull ServerSocket server;
 
-    public HttpProxyImplThread(@NotNull HttpProxyImpl proxy) {
+    public HttpProxyImplThread(@NotNull SimpleHttpProxy proxy) {
         setName("Http Proxy #" + proxy.hashCode());
         setDaemon(false);
 
@@ -40,7 +40,7 @@ class HttpProxyImplThread extends Thread {
 
     // Getters
 
-    public @NotNull HttpProxyImpl getProxy() {
+    public @NotNull SimpleHttpProxy getProxy() {
         return proxy;
     }
 
@@ -80,7 +80,7 @@ class HttpProxyImplThread extends Thread {
                             clientSocket.configureBlocking(false);
                             clientSocket.register(selector, SelectionKey.OP_READ);
                             // Create the proxy client
-                            @NotNull HttpProxyClientImpl client = new HttpProxyClientImpl(getProxy(), clientSocket);
+                            @NotNull SimpleHttpProxyClient client = new SimpleHttpProxyClient(getProxy(), clientSocket);
                             getProxy().getClients().add(client);
                         } catch (@NotNull Throwable throwable) {
                             getUncaughtExceptionHandler().uncaughtException(this, throwable);

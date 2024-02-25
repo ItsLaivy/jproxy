@@ -26,11 +26,11 @@ import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-public class ConnectionImpl implements Connection {
+public class SimpleConnection implements Connection {
 
     // Object
 
-    private final @NotNull HttpProxyClientImpl client;
+    private final @NotNull SimpleHttpProxyClient client;
     protected final @NotNull Queue<CompletableFuture<HttpResponse>> requestFutures = new ArrayDeque<>();
 
     private final @NotNull InetSocketAddress address;
@@ -40,7 +40,7 @@ public class ConnectionImpl implements Connection {
     protected boolean secure = false;
     protected boolean anonymous = false;
 
-    protected ConnectionImpl(@NotNull HttpProxyClientImpl client, @NotNull InetSocketAddress address) {
+    protected SimpleConnection(@NotNull SimpleHttpProxyClient client, @NotNull InetSocketAddress address) {
         this.client = client;
         this.address = address;
     }
@@ -49,7 +49,7 @@ public class ConnectionImpl implements Connection {
 
     @Override
     @Contract(pure = true)
-    public final @NotNull HttpProxyClientImpl getClient() {
+    public final @NotNull SimpleHttpProxyClient getClient() {
         return client;
     }
 
@@ -123,12 +123,11 @@ public class ConnectionImpl implements Connection {
 
                         response = optional.get().getFactory().getResponse().parse(client, bytes);
                     } catch (@NotNull ParseException e) {
-                        response = HttpResponse.create();
+                        response = HttpResponse.create(new HttpStatus(400, "Bad Request - '" + e.getMessage() + "'"), HttpVersion.HTTP1_1(), StandardCharsets.UTF_8, null);
                     }
                 } catch (ClosedChannelException ignore) {
                     continue;
                 } catch (IOException e) {
-                    e.printStackTrace();
                     response = HttpStatus.BAD_REQUEST.createResponse(HttpVersion.HTTP1_1());
                 }
 

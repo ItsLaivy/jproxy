@@ -1,5 +1,6 @@
 package codes.laivy.proxy.http.impl;
 
+import codes.laivy.proxy.http.HttpProxy;
 import codes.laivy.proxy.http.connection.Connection;
 import codes.laivy.proxy.http.connection.HttpProxyClient;
 import codes.laivy.proxy.http.core.HttpAuthorization;
@@ -27,14 +28,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 
-public class HttpProxyClientImpl implements HttpProxyClient {
-
-    // Static initializers
-
-    // todo: enhance this
-    public static @NotNull HeaderKey ANONYMOUS_HEADER = HeaderKey.create("X-Anonymous", Pattern.compile("^(?i)(true|false)$"));
+public class SimpleHttpProxyClient implements HttpProxyClient {
 
     // Initializers
 
@@ -49,7 +44,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
         public @NotNull Thread newThread(@NotNull Runnable r) {
             @NotNull Thread thread = new Thread(r);
             thread.setDaemon(false);
-            thread.setName("Http Proxy '" + proxy.address() + "' process #" + count.incrementAndGet() + " of client '" + getAddress() + "'");
+            thread.setName("SimpleConnection '" + getAddress() + "' process #" + count.incrementAndGet() + " of proxy '" + getProxy().address() + "'");
 
             return thread;
         }
@@ -57,7 +52,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
 
     // Object
 
-    private final @NotNull HttpProxyImpl proxy;
+    private final @NotNull HttpProxy proxy;
     private final @NotNull List<Connection> connections = new ArrayList<>();
 
     private final @NotNull SocketChannel channel;
@@ -69,7 +64,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
     protected boolean keepAlive = true;
     protected boolean authenticated;
 
-    public HttpProxyClientImpl(@NotNull HttpProxyImpl proxy, @NotNull SocketChannel channel) {
+    public SimpleHttpProxyClient(@NotNull HttpProxy proxy, @NotNull SocketChannel channel) {
         this.proxy = proxy;
         this.authenticated = proxy.getAuthentication() == null;
 
@@ -94,7 +89,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
     // Proxy
 
     @Override
-    public final @NotNull HttpProxyImpl getProxy() {
+    public final @NotNull HttpProxy getProxy() {
         return proxy;
     }
     @Override
@@ -125,7 +120,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
         return Arrays.stream(getConnections()).filter(connection -> connection.getAddress().equals(address)).findFirst();
     }
     protected @NotNull Connection createConnection(@NotNull InetSocketAddress address, boolean anonymous, boolean keepAlive) throws IOException {
-        @NotNull ConnectionImpl instance = new ConnectionImpl(this, address);
+        @NotNull SimpleConnection instance = new SimpleConnection(this, address);
 
         instance.keepAlive = keepAlive;
         instance.anonymous = anonymous;
@@ -212,8 +207,8 @@ public class HttpProxyClientImpl implements HttpProxyClient {
         @NotNull HttpRequest clone = HttpRequest.create(request.getVersion(), request.getMethod(), null, request.getUri(), request.getCharset(), request.getHeaders(), request.getMessage());
         System.out.println("Clone: '" + new String(clone.getVersion().getFactory().getRequest().wrap(clone)).replaceAll("\r", "").replaceAll("\n", " ") + "'");
 
-        boolean anonymous = clone.getHeaders().contains(ANONYMOUS_HEADER) && clone.getHeaders().last(ANONYMOUS_HEADER).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("true");
-        clone.getHeaders().remove(ANONYMOUS_HEADER);
+        boolean anonymous = clone.getHeaders().contains(HeaderKey.ANONYMOUS_HEADER) && clone.getHeaders().last(HeaderKey.ANONYMOUS_HEADER).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("true");
+        clone.getHeaders().remove(HeaderKey.ANONYMOUS_HEADER);
 
         CompletableFuture.runAsync(() -> {
             try {
@@ -282,8 +277,8 @@ public class HttpProxyClientImpl implements HttpProxyClient {
     @Override
     public boolean equals(@Nullable Object object) {
         if (this == object) return true;
-        if (!(object instanceof HttpProxyClientImpl)) return false;
-        @NotNull HttpProxyClientImpl that = (HttpProxyClientImpl) object;
+        if (!(object instanceof SimpleHttpProxyClient)) return false;
+        @NotNull SimpleHttpProxyClient that = (SimpleHttpProxyClient) object;
         return Objects.equals(getProxy(), that.getProxy()) && Objects.equals(getAddress(), that.getAddress());
     }
     @Override

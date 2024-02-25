@@ -13,7 +13,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.util.Collection;
 
-public class HttpProxyImpl extends HttpProxy {
+public class SimpleHttpProxy extends HttpProxy {
 
     // Object
 
@@ -25,7 +25,7 @@ public class HttpProxyImpl extends HttpProxy {
 
     // Constructor
 
-    public HttpProxyImpl(@NotNull InetSocketAddress address, @Nullable HttpAuthorization authorization) {
+    public SimpleHttpProxy(@NotNull InetSocketAddress address, @Nullable HttpAuthorization authorization) {
         super(address, authorization);
     }
 
