@@ -47,9 +47,8 @@ public interface HttpProxyClient extends ProxyClient {
      * Sends an HTTP response of a previous operation to the client
      *
      * @throws IOException If an input or output error occurs.
-     * @throws ParseException If an error occurs trying to parse the response
-     */
-    void write(@NotNull HttpResponse response) throws IOException, ParseException;
+z     */
+    void write(@NotNull HttpResponse response) throws IOException;
 
     /**
      * Creates an HTTP request to the destination proxy on behalf of the client.

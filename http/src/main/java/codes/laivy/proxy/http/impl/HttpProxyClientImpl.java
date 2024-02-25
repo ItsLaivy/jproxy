@@ -27,13 +27,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 public class HttpProxyClientImpl implements HttpProxyClient {
 
     // Static initializers
 
     // todo: enhance this
-    public static @NotNull HeaderKey ANONYMOUS_HEADER = HeaderKey.create("X-Anonymous");
+    public static @NotNull HeaderKey ANONYMOUS_HEADER = HeaderKey.create("X-Anonymous", Pattern.compile("^(?i)(true|false)$"));
 
     // Initializers
 
@@ -194,11 +195,13 @@ public class HttpProxyClientImpl implements HttpProxyClient {
         System.out.println("Read parse: '" + new String(request.getVersion().getFactory().getRequest().wrap(request)).replaceAll("\r", "").replaceAll("\n", " ") + "'");
 
         request.getHeaders().first(HeaderKey.PROXY_CONNECTION).ifPresent(header -> this.keepAlive = header.getValue().equalsIgnoreCase("keep-alive"));
+        request.getHeaders().remove(HeaderKey.PROXY_CONNECTION);
+
         return request;
     }
 
     @Override
-    public void write(@NotNull HttpResponse response) throws IOException, ParseException {
+    public void write(@NotNull HttpResponse response) throws IOException {
         getSocket().getChannel().write(ByteBuffer.wrap(response.getBytes()));
         System.out.println("Write to client: '" + new String(response.getBytes()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
     }
@@ -206,16 +209,22 @@ public class HttpProxyClientImpl implements HttpProxyClient {
     public @NotNull CompletableFuture<HttpResponse> request(@NotNull HttpRequest request) throws IOException, ParseException {
         @NotNull CompletableFuture<HttpResponse> future = new CompletableFuture<>();
 
+        @NotNull HttpRequest clone = HttpRequest.create(request.getVersion(), request.getMethod(), null, request.getUri(), request.getCharset(), request.getHeaders(), request.getMessage());
+        System.out.println("Clone: '" + new String(clone.getVersion().getFactory().getRequest().wrap(clone)).replaceAll("\r", "").replaceAll("\n", " ") + "'");
+
+        boolean anonymous = clone.getHeaders().contains(ANONYMOUS_HEADER) && clone.getHeaders().last(ANONYMOUS_HEADER).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("true");
+        clone.getHeaders().remove(ANONYMOUS_HEADER);
+
         CompletableFuture.runAsync(() -> {
             try {
-                @Nullable Header host = request.getHeaders().first(HeaderKey.HOST).orElse(null);
+                @Nullable Header host = clone.getHeaders().first(HeaderKey.HOST).orElse(null);
 
                 if (host == null) {
-                    future.complete(HttpStatus.BAD_REQUEST.createResponse(request.getVersion()));
+                    future.complete(HttpStatus.BAD_REQUEST.createResponse(clone.getVersion()));
                 } else {
                     @Nullable HttpAuthorization authorization = getProxy().getAuthentication();
                     if (!isAuthenticated() && authorization != null) {
-                        @Nullable HttpResponse authResponse = authorization.validate(this, request);
+                        @Nullable HttpResponse authResponse = authorization.validate(this, clone);
 
                         if (authResponse != null) {
                             future.complete(authResponse);
@@ -226,23 +235,20 @@ public class HttpProxyClientImpl implements HttpProxyClient {
                     }
 
                     try {
-                        System.out.println("Headers: '" + Arrays.toString(request.getHeaders().stream().toArray(Header[]::new)) + "'");
-                        @NotNull URIAuthority authority = URIAuthority.parse(request.getHeaders().first(HeaderKey.HOST).orElseThrow(NullPointerException::new).getValue());
+                        @NotNull URIAuthority authority = URIAuthority.parse(clone.getHeaders().first(HeaderKey.HOST).orElseThrow(NullPointerException::new).getValue());
                         @Nullable Connection connection = getConnection(InetSocketAddress.createUnresolved(authority.getHostName(), authority.getPort())).orElse(null);
 
                         if (connection != null) {
-                            future.complete(connection.write(request).get());
+                            future.complete(connection.write(clone).get());
                         } else if (!canSession()) {
                             System.out.println("B");
-                            future.complete(HttpStatus.BAD_REQUEST.createResponse(request.getVersion()));
+                            future.complete(HttpStatus.BAD_REQUEST.createResponse(clone.getVersion()));
                         } else try { // Create new connection
-                            boolean keepAlive = !request.getHeaders().contains(HeaderKey.CONNECTION) || request.getHeaders().last(HeaderKey.CONNECTION).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("keep-alive");
-                            boolean anonymous = request.getHeaders().contains(ANONYMOUS_HEADER) && request.getHeaders().last(ANONYMOUS_HEADER).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("true");
-
+                            boolean keepAlive = !clone.getHeaders().contains(HeaderKey.CONNECTION) || clone.getHeaders().last(HeaderKey.CONNECTION).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("keep-alive");
                             @NotNull Connection instance = createConnection(authority.getAddress(), anonymous, keepAlive);
-                            // todo: Clone request without the anonymous things
+                            // todo: Clone request witho the anonymous things
 
-                            instance.write(request).whenComplete((done, exception) -> {
+                            instance.write(clone).whenComplete((done, exception) -> {
                                 try {
                                     if (exception != null) future.completeExceptionally(exception);
                                     else future.complete(done);
@@ -257,7 +263,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
                         } catch (@NotNull Throwable ignore) {
                             // todo: create a debug system
                             ignore.printStackTrace();
-                            future.complete(HttpStatus.BAD_REQUEST.createResponse(request.getVersion()));
+                            future.complete(HttpStatus.BAD_REQUEST.createResponse(clone.getVersion()));
                         }
                     } catch (@NotNull Throwable throwable) {
                         throwable.printStackTrace();
@@ -267,7 +273,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
             } catch (@NotNull Throwable throwable) {
                 future.completeExceptionally(throwable);
             }
-        }, getExecutor(request));
+        }, getExecutor(clone));
 
         return future;
     }
