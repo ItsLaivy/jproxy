@@ -7,8 +7,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.text.ParseException;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public interface HttpProxyClient extends ProxyClient {
@@ -30,6 +33,10 @@ public interface HttpProxyClient extends ProxyClient {
     // Connection
 
     @NotNull Connection @NotNull [] getConnections();
+    default @NotNull Optional<Connection> getConnection(@NotNull InetSocketAddress address) {
+        return Arrays.stream(getConnections()).filter(connection -> connection.getAddress().equals(address)).findFirst();
+    }
+
     boolean isKeepAlive();
 
     // Modules

@@ -116,9 +116,7 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
     public @NotNull Connection @NotNull [] getConnections() {
         return connections.toArray(new Connection[0]);
     }
-    protected @NotNull Optional<Connection> getConnection(@NotNull InetSocketAddress address) {
-        return Arrays.stream(getConnections()).filter(connection -> connection.getAddress().equals(address)).findFirst();
-    }
+
     protected @NotNull Connection createConnection(@NotNull InetSocketAddress address, boolean anonymous, boolean keepAlive) throws IOException {
         @NotNull SimpleConnection instance = new SimpleConnection(this, address);
 
@@ -182,7 +180,7 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
 
         @NotNull Optional<@NotNull HttpVersion> optional = Arrays.stream(HttpVersion.getVersions()).filter(v -> v.getFactory().getRequest().isCompatible(this, bytes)).findFirst();
         if (!optional.isPresent()) {
-            throw new ParseException("invalid http request", 0);
+            throw new ParseException("http version not supported by proxy server", 0);
         }
 
         System.out.println("Read brute: '" + new String(buffer.array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");

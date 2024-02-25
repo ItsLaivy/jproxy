@@ -2,7 +2,9 @@ package codes.laivy.proxy.http.impl;
 
 import codes.laivy.proxy.http.connection.HttpProxyClient;
 import codes.laivy.proxy.http.core.HttpStatus;
+import codes.laivy.proxy.http.core.protocol.HttpVersion;
 import codes.laivy.proxy.http.core.request.HttpRequest;
+import codes.laivy.proxy.http.core.response.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
@@ -11,6 +13,8 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.channels.*;
+import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -98,7 +102,7 @@ class HttpProxyImplThread extends Thread {
 
                             if (client == null) {
                                 clientChannel.close();
-                            } else {
+                            } else try {
                                 @NotNull Socket socket = clientChannel.socket();
                                 @Nullable HttpRequest request = client.read();
 
@@ -110,7 +114,8 @@ class HttpProxyImplThread extends Thread {
                                         if (exception != null) {
                                             try {
                                                 client.write(HttpStatus.BAD_REQUEST.createResponse(request.getVersion()));
-                                            } catch (@NotNull Exception ignore) {}
+                                            } catch (@NotNull Exception ignore) {
+                                            }
                                         } else try {
                                             client.write(done);
                                         } catch (@NotNull Throwable throwable) {
@@ -118,6 +123,10 @@ class HttpProxyImplThread extends Thread {
                                         }
                                     });
                                 }
+                            } catch (@NotNull ParseException exception) {
+                                client.write(HttpResponse.create(new HttpStatus(400, "Bad Request - '" + exception.getMessage() + "'"), HttpVersion.HTTP1_1(), StandardCharsets.UTF_8, null));
+                            } catch (@NotNull Throwable exception) {
+                                client.close();
                             }
                         } catch (@NotNull Throwable throwable) {
                             getUncaughtExceptionHandler().uncaughtException(this, throwable);
