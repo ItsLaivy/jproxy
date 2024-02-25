@@ -5,7 +5,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.net.SocketAddress;
 import java.util.Collection;
 
 public abstract class ProxyServer extends Proxy {

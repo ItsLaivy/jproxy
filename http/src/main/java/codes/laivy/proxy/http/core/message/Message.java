@@ -2,7 +2,7 @@ package codes.laivy.proxy.http.core.message;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.io.*;
+import java.io.Closeable;
 
 public interface Message extends Closeable {
 

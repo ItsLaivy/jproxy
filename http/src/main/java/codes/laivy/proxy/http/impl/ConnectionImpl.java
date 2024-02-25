@@ -12,7 +12,10 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.NotYetConnectedException;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
@@ -66,7 +69,7 @@ public class ConnectionImpl implements Connection {
     @Override
     public boolean isConnected() {
         @Nullable Socket socket = getSocket();
-        return socket != null && socket.isConnected();
+        return socket != null && socket.isConnected() && !socket.isClosed();
     }
 
     @Override
@@ -79,9 +82,13 @@ public class ConnectionImpl implements Connection {
         channel.configureBlocking(false);
 
         channel.bind(new InetSocketAddress(getClient().getProxy().address().getHostName(), 0));
-        channel.connect(getAddress().isUnresolved() ? new InetSocketAddress(getAddress().getAddress(), getAddress().getPort()) : getAddress());
+        channel.connect(getAddress().isUnresolved() ? new InetSocketAddress(getAddress().getHostName(), getAddress().getPort()) : getAddress());
 
-        channel.finishConnect();
+        if (!channel.finishConnect()) {
+            throw new SocketException("cannot initialize connection to " + getAddress().getAddress().getHostName() + ":" + getAddress().getPort());
+        }
+
+        this.socket = channel.socket();
 
         new Thread(() -> {
             while (channel.isConnected()) {
@@ -119,6 +126,8 @@ public class ConnectionImpl implements Connection {
                         e.printStackTrace();
                         response = HttpStatus.BAD_REQUEST.createResponse(HttpVersion.HTTP1_1());
                     }
+                } catch (ClosedChannelException ignore) {
+                    continue;
                 } catch (IOException e) {
                     e.printStackTrace();
                     response = HttpStatus.BAD_REQUEST.createResponse(HttpVersion.HTTP1_1());
@@ -136,8 +145,6 @@ public class ConnectionImpl implements Connection {
                 }
             }
         }, "Http Proxy Client '" + getClient().getAddress() + "' connection #" + getClient().connectionCount.get()).start();
-
-        this.socket = channel.socket();
     }
 
     @Override
@@ -183,8 +190,8 @@ public class ConnectionImpl implements Connection {
         @NotNull HttpVersion version = request.getVersion();
         @Nullable Socket socket = getSocket();
 
-        if (socket == null || !socket.isConnected() || socket.isClosed()) {
-            throw new IllegalStateException("this http proxy connection hasn't connected");
+        if (!isConnected()) {
+            throw new NotYetConnectedException();
         }
 
         @NotNull CompletableFuture<HttpResponse> future = new CompletableFuture<>();

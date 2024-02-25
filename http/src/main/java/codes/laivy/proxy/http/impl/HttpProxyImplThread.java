@@ -105,18 +105,19 @@ class HttpProxyImplThread extends Thread {
                                 if (request == null) {
                                     client.close();
                                 } else {
-                                    System.out.println("Clone: '" + new String(request.getVersion().getFactory().getRequest().wrap(request)).replaceAll("\r", "").replaceAll("\n", " ") + "'");
+                                    @NotNull HttpRequest clone = HttpRequest.create(request.getVersion(), request.getMethod(), null, request.getUri(), request.getCharset(), request.getHeaders(), request.getMessage());
+                                    System.out.println("Clone: '" + new String(clone.getVersion().getFactory().getRequest().wrap(clone)).replaceAll("\r", "").replaceAll("\n", " ") + "'");
 
-                                    client.request(request).whenComplete((done, exception) -> {
+                                    client.request(clone).whenComplete((done, exception) -> {
                                         // todo: look this
                                         if (exception != null) {
                                             try {
-                                                client.write(HttpStatus.BAD_REQUEST.createResponse(request.getVersion()));
+                                                client.write(HttpStatus.BAD_REQUEST.createResponse(clone.getVersion()));
                                             } catch (@NotNull Exception ignore) {}
                                         } else try {
                                             client.write(done);
                                         } catch (@NotNull Throwable throwable) {
-
+                                            throwable.printStackTrace();
                                         }
                                     });
                                 }

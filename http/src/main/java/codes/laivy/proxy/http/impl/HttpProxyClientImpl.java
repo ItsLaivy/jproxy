@@ -4,6 +4,7 @@ import codes.laivy.proxy.http.connection.Connection;
 import codes.laivy.proxy.http.connection.HttpProxyClient;
 import codes.laivy.proxy.http.core.HttpAuthorization;
 import codes.laivy.proxy.http.core.HttpStatus;
+import codes.laivy.proxy.http.core.URIAuthority;
 import codes.laivy.proxy.http.core.headers.Header;
 import codes.laivy.proxy.http.core.headers.HeaderKey;
 import codes.laivy.proxy.http.core.protocol.HttpVersion;
@@ -128,9 +129,9 @@ public class HttpProxyClientImpl implements HttpProxyClient {
         instance.keepAlive = keepAlive;
         instance.anonymous = anonymous;
 
-        connectionCount.set(connectionCount.get() + 1);
         instance.connect();
 
+        connectionCount.set(connectionCount.get() + 1);
         connections.add(instance);
         return instance;
     }
@@ -209,7 +210,6 @@ public class HttpProxyClientImpl implements HttpProxyClient {
             try {
                 @Nullable Header host = request.getHeaders().first(HeaderKey.HOST).orElse(null);
                 if (host == null) {
-                    System.out.println("A");
                     future.complete(HttpStatus.BAD_REQUEST.createResponse(request.getVersion()));
                 } else {
                     @Nullable HttpAuthorization authorization = getProxy().getAuthentication();
@@ -225,8 +225,8 @@ public class HttpProxyClientImpl implements HttpProxyClient {
                     }
 
                     try {
-                        @NotNull InetSocketAddress address = request.getAuthority().getAddress();
-                        @Nullable Connection connection = getConnection(address).orElse(null);
+                        @NotNull URIAuthority authority = URIAuthority.parse(request.getHeaders().first(HeaderKey.HOST).orElseThrow(NullPointerException::new).getValue());
+                        @Nullable Connection connection = getConnection(InetSocketAddress.createUnresolved(authority.getHostName(), authority.getPort())).orElse(null);
 
                         if (connection != null) {
                             future.complete(connection.write(request).get());
@@ -237,7 +237,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
                             boolean keepAlive = !request.getHeaders().contains(HeaderKey.CONNECTION) || request.getHeaders().last(HeaderKey.CONNECTION).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("keep-alive");
                             boolean anonymous = request.getHeaders().contains(ANONYMOUS_HEADER) && request.getHeaders().last(ANONYMOUS_HEADER).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("true");
 
-                            @NotNull Connection instance = createConnection(address, anonymous, keepAlive);
+                            @NotNull Connection instance = createConnection(authority.getAddress(), anonymous, keepAlive);
                             // todo: Clone request without the anonymous things
 
                             instance.write(request).whenComplete((done, exception) -> {
@@ -258,7 +258,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
                             future.complete(HttpStatus.BAD_REQUEST.createResponse(request.getVersion()));
                         }
                     } catch (@NotNull Throwable throwable) {
-                        System.out.println("D");
+                        throwable.printStackTrace();
                         future.completeExceptionally(throwable);
                     }
                 }

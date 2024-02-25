@@ -28,6 +28,24 @@ import java.util.regex.Pattern;
 
 class HttpFactory1_1 implements HttpFactory {
 
+    // Utilities
+
+    private static @NotNull URI parseUri(@NotNull String string) throws URISyntaxException {
+        if (string.startsWith("http://")) {
+            string = string.replaceFirst("http://", "");
+        } else if (string.startsWith("https://")) {
+            string = string.replaceFirst("https://", "");
+        }
+
+        @NotNull String[] split = string.split("/", 2);
+
+        if (split.length == 1) {
+            return new URI("/");
+        } else {
+            return new URI("/" + split[1]);
+        }
+    }
+
     // Parsers
 
     private final @NotNull Request request = new Request() {
@@ -40,7 +58,7 @@ class HttpFactory1_1 implements HttpFactory {
             }
 
             // Content
-            @NotNull String[] content = string.split("\n\n\r\n", 2);
+            @NotNull String[] content = string.split("\r\n\r\n", 2);
             // Request line
             @NotNull String requestLine = content[0].split("\r\n", 2)[0];
             @NotNull String[] parts = requestLine.split(" ");
@@ -60,8 +78,7 @@ class HttpFactory1_1 implements HttpFactory {
 
                 if (URIAuthority.isUriAuthority(uriString)) {
                     authority = URIAuthority.parse(uriString);
-                    // todo: fix this uri
-                    uri = new URI(uriString);
+                    uri = parseUri(uriString);
                 } else {
                     authority = null;
                     uri = new URI(uriString);
