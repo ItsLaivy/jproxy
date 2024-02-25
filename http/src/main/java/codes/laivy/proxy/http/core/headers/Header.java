@@ -4,6 +4,8 @@ import codes.laivy.proxy.http.core.NameValuePair;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 public interface Header extends NameValuePair {
 
     @NotNull HeaderKey getKey();
@@ -37,6 +39,15 @@ public interface Header extends NameValuePair {
             @Override
             public @NotNull String toString() {
                 return getName() + "=" + getValue();
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                return obj instanceof Header && ((Header) obj).getName().equalsIgnoreCase(getName());
+            }
+            @Override
+            public int hashCode() {
+                return Objects.hash(getName(), getValue());
             }
         };
     }

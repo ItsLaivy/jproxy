@@ -106,7 +106,7 @@ class HttpProxyImplThread extends Thread {
                                     client.close();
                                 } else {
                                     @NotNull HttpRequest clone = HttpRequest.create(request.getVersion(), request.getMethod(), null, request.getUri(), request.getCharset(), request.getHeaders(), request.getMessage());
-                                    System.out.println("Clone: '" + new String(clone.getVersion().getFactory().getRequest().wrap(clone)).replaceAll("\r", "").replaceAll("\n", " ") + "'");
+                                    System.out.println("Clone Headers: '" + clone.getHeaders().size() + "', Clone data: '" + new String(clone.getVersion().getFactory().getRequest().wrap(clone)).replaceAll("\r", "").replaceAll("\n", " ") + "'");
 
                                     client.request(clone).whenComplete((done, exception) -> {
                                         // todo: look this

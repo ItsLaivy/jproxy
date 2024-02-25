@@ -209,6 +209,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
         CompletableFuture.runAsync(() -> {
             try {
                 @Nullable Header host = request.getHeaders().first(HeaderKey.HOST).orElse(null);
+
                 if (host == null) {
                     future.complete(HttpStatus.BAD_REQUEST.createResponse(request.getVersion()));
                 } else {
@@ -225,6 +226,7 @@ public class HttpProxyClientImpl implements HttpProxyClient {
                     }
 
                     try {
+                        System.out.println("Headers: '" + Arrays.toString(request.getHeaders().stream().toArray(Header[]::new)) + "'");
                         @NotNull URIAuthority authority = URIAuthority.parse(request.getHeaders().first(HeaderKey.HOST).orElseThrow(NullPointerException::new).getValue());
                         @Nullable Connection connection = getConnection(InetSocketAddress.createUnresolved(authority.getHostName(), authority.getPort())).orElse(null);
 
