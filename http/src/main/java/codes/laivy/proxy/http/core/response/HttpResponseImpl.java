@@ -7,8 +7,6 @@ import codes.laivy.proxy.http.core.protocol.HttpVersion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.nio.charset.Charset;
-
 class HttpResponseImpl implements HttpResponse {
 
     private final @NotNull HttpStatus status;

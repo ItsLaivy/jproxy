@@ -9,7 +9,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URI;
-import java.nio.charset.Charset;
 
 /**
  * This interface represents an HTTP request.

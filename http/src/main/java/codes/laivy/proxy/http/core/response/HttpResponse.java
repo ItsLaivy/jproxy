@@ -10,7 +10,6 @@ import codes.laivy.proxy.http.core.protocol.HttpVersion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.time.Clock;
 import java.time.Instant;
