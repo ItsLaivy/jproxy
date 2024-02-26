@@ -240,6 +240,7 @@ class HttpFactory1_1 implements HttpFactory {
                 message = new StringMessage(content[1]);
             }
 
+            // todo: content length if not have
             return HttpResponse.create(status, getVersion(), charset, headerList, message);
         }
 
