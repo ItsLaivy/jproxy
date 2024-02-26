@@ -3,6 +3,7 @@ package codes.laivy.proxy.http.connection;
 import codes.laivy.proxy.connection.ProxyClient;
 import codes.laivy.proxy.http.core.request.HttpRequest;
 import codes.laivy.proxy.http.core.response.HttpResponse;
+import codes.laivy.proxy.http.exception.UnsupportedHttpVersionException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,9 +50,10 @@ public interface HttpProxyClient extends ProxyClient {
      * @return An HTTP request read from the proxy or null if the connection has closed.
      *
      * @throws IOException If an input or output error occurs.
+     * @throws UnsupportedHttpVersionException If an unsupported http version request has made
      * @throws ParseException If an error occurs trying to parse the request
      */
-    @Nullable HttpRequest read() throws IOException, ParseException;
+    @Nullable HttpRequest read() throws IOException, UnsupportedHttpVersionException, ParseException;
 
     /**
      * Sends an HTTP response of a previous operation to the client

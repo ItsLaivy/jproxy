@@ -5,6 +5,7 @@ import codes.laivy.proxy.http.core.HttpStatus;
 import codes.laivy.proxy.http.core.protocol.HttpVersion;
 import codes.laivy.proxy.http.core.request.HttpRequest;
 import codes.laivy.proxy.http.core.response.HttpResponse;
+import codes.laivy.proxy.http.exception.UnsupportedHttpVersionException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
@@ -18,14 +19,14 @@ import java.text.ParseException;
 import java.util.Iterator;
 import java.util.Set;
 
-class HttpProxyImplThread extends Thread {
+class HttpSimpleProxyThread extends Thread {
 
     private final @NotNull SimpleHttpProxy proxy;
 
     private final @NotNull Selector selector;
     private final @NotNull ServerSocket server;
 
-    public HttpProxyImplThread(@NotNull SimpleHttpProxy proxy) {
+    public HttpSimpleProxyThread(@NotNull SimpleHttpProxy proxy) {
         setName("Http Proxy #" + proxy.hashCode());
         setDaemon(false);
 
@@ -123,6 +124,8 @@ class HttpProxyImplThread extends Thread {
                                         }
                                     });
                                 }
+                            } catch (@NotNull UnsupportedHttpVersionException exception) {
+                                client.write(HttpResponse.create(new HttpStatus(HttpStatus.HTTP_VERSION_NOT_SUPPORTED.getCode(), exception.getMessage()), HttpVersion.HTTP1_1(), StandardCharsets.UTF_8, null));
                             } catch (@NotNull ParseException exception) {
                                 client.write(HttpResponse.create(new HttpStatus(400, "Bad Request - '" + exception.getMessage() + "'"), HttpVersion.HTTP1_1(), StandardCharsets.UTF_8, null));
                             } catch (@NotNull Throwable exception) {

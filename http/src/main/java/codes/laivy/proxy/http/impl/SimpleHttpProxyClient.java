@@ -11,6 +11,7 @@ import codes.laivy.proxy.http.core.headers.HeaderKey;
 import codes.laivy.proxy.http.core.protocol.HttpVersion;
 import codes.laivy.proxy.http.core.request.HttpRequest;
 import codes.laivy.proxy.http.core.response.HttpResponse;
+import codes.laivy.proxy.http.exception.UnsupportedHttpVersionException;
 import io.netty.util.concurrent.ThreadPerTaskExecutor;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -164,7 +165,7 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
     // Modules
 
     @Override
-    public @Nullable HttpRequest read() throws IOException, ParseException {
+    public @Nullable HttpRequest read() throws IOException, UnsupportedHttpVersionException, ParseException {
         @NotNull ByteBuffer buffer = ByteBuffer.allocate(4096); // 4KB Buffer
 
         @NotNull SocketChannel channel = getSocket().getChannel();
@@ -189,7 +190,7 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
 
         @NotNull Optional<@NotNull HttpVersion> optional = Arrays.stream(HttpVersion.getVersions()).filter(v -> v.getFactory().getRequest().isCompatible(this, bytes)).findFirst();
         if (!optional.isPresent()) {
-            throw new ParseException("http version not supported by proxy server", 0);
+            throw new UnsupportedHttpVersionException("http version not supported by proxy server");
         }
 
         System.out.println("Read brute: '" + new String(buffer.array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");

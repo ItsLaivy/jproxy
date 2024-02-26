@@ -74,7 +74,7 @@ public class SimpleHttpProxy extends HttpProxy {
         channel.socket().bind(address());
         channel.register(getSelector(), SelectionKey.OP_ACCEPT);
 
-        this.thread = new HttpProxyImplThread(this);
+        this.thread = new HttpSimpleProxyThread(this);
         this.thread.start();
 
         return true;
