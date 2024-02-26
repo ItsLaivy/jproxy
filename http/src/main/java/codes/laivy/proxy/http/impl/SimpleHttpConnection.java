@@ -1,6 +1,6 @@
 package codes.laivy.proxy.http.impl;
 
-import codes.laivy.proxy.http.connection.Connection;
+import codes.laivy.proxy.http.connection.HttpConnection;
 import codes.laivy.proxy.http.core.HttpStatus;
 import codes.laivy.proxy.http.core.protocol.HttpVersion;
 import codes.laivy.proxy.http.core.request.HttpRequest;
@@ -15,32 +15,36 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
-import java.nio.channels.NotYetConnectedException;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.Optional;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executor;
 
-public class SimpleConnection implements Connection {
+public class SimpleHttpConnection implements HttpConnection {
+
+    // Concurrency
+
+    protected final @NotNull Queue<CompletableFuture<HttpResponse>> queue = new ConcurrentLinkedDeque<>();
+
+    // Thread
+
+    protected @Nullable Thread thread;
 
     // Object
 
     private final @NotNull SimpleHttpProxyClient client;
-    protected final @NotNull Queue<CompletableFuture<HttpResponse>> requestFutures = new ArrayDeque<>();
 
     private final @NotNull InetSocketAddress address;
-    protected volatile @Nullable Socket socket;
+    protected @Nullable Socket socket;
 
     protected boolean keepAlive = true;
     protected boolean secure = false;
     protected boolean anonymous = false;
 
-    protected SimpleConnection(@NotNull SimpleHttpProxyClient client, @NotNull InetSocketAddress address) {
+    protected SimpleHttpConnection(@NotNull SimpleHttpProxyClient client, @NotNull InetSocketAddress address) {
         this.client = client;
         this.address = address;
     }
@@ -89,8 +93,7 @@ public class SimpleConnection implements Connection {
         }
 
         this.socket = channel.socket();
-
-        new Thread(() -> {
+        this.thread = new Thread(() -> {
             while (channel.isConnected()) {
                 @NotNull HttpResponse response;
 
@@ -132,17 +135,14 @@ public class SimpleConnection implements Connection {
                 }
 
                 try {
-                    @Nullable CompletableFuture<HttpResponse> future = requestFutures.poll();
-
-                    if (future == null) {
-                        continue; // Discard the response
-                    }
-
-                    future.complete(response);
-                } catch (@NotNull Throwable ignore) {
+                    @Nullable CompletableFuture<HttpResponse> future = queue.poll();
+                    if (future != null) future.complete(response);
+                } catch (@NotNull Throwable throwable) {
+                    throwable.printStackTrace();
                 }
             }
-        }, "Http Proxy Client '" + getClient().getAddress() + "' connection #" + getClient().connectionCount.get()).start();
+        }, "Http Proxy Client '" + getClient().getAddress() + "' connection #" + getClient().connectionCount.get());
+        this.thread.start();
     }
 
     @Override
@@ -154,10 +154,15 @@ public class SimpleConnection implements Connection {
             this.socket = null;
         }
 
-        for (CompletableFuture<HttpResponse> future : requestFutures) {
+        // Close thread
+        if (this.thread != null) {
+            this.thread.interrupt();
+        }
+        // Close requests
+        for (@NotNull CompletableFuture<HttpResponse> future : queue) {
             future.completeExceptionally(new InterruptedException("connection closed"));
         }
-        requestFutures.clear();
+        queue.clear();
     }
 
     // Settings
@@ -183,26 +188,35 @@ public class SimpleConnection implements Connection {
         return getClient().getExecutor(request);
     }
 
-    @Override
-    public @NotNull CompletableFuture<HttpResponse> write(@NotNull HttpRequest request) throws IOException, ParseException {
-        @NotNull HttpVersion version = request.getVersion();
+    protected void send(@NotNull HttpRequest request) throws IOException {
         @Nullable Socket socket = getSocket();
-
-        if (!isConnected()) {
-            throw new NotYetConnectedException();
+        if (socket == null || !isConnected()) {
+            connect();
+            socket = getSocket();
         }
 
+        // Send request
+        @NotNull ByteBuffer buffer = ByteBuffer.wrap(request.getBytes());
+        socket.getChannel().write(buffer);
+    }
+
+    @Override
+    public synchronized @NotNull CompletableFuture<HttpResponse> write(@NotNull HttpRequest request) throws IOException {
         @NotNull CompletableFuture<HttpResponse> future = new CompletableFuture<>();
-        requestFutures.add(future);
+        queue.add(future);
 
-        try {
-            @NotNull ByteBuffer buffer = ByteBuffer.wrap(version.getFactory().getRequest().wrap(request));
-            socket.getChannel().write(buffer);
-            System.out.println("Write: '" + new String(buffer.array()).replaceAll("\r", "").replaceAll("\n", " ") + "'");
-        } catch (@NotNull Throwable throwable) {
-            requestFutures.remove(future);
-            future.completeExceptionally(throwable);
+        if (queue.size() == 1) {
+            send(request);
         }
+
+        future.whenComplete((done, exception) -> {
+            if (!isKeepAlive()) {
+                try {
+                    close();
+                } catch (IOException ignore) {
+                }
+            }
+        });
 
         return future;
     }
