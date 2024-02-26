@@ -1,7 +1,7 @@
 package codes.laivy.proxy.http.impl;
 
 import codes.laivy.proxy.http.HttpProxy;
-import codes.laivy.proxy.http.connection.Connection;
+import codes.laivy.proxy.http.connection.HttpConnection;
 import codes.laivy.proxy.http.connection.HttpProxyClient;
 import codes.laivy.proxy.http.core.HttpAuthorization;
 import codes.laivy.proxy.http.core.HttpStatus;
@@ -27,6 +27,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SimpleHttpProxyClient implements HttpProxyClient {
@@ -53,7 +54,7 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
     // Object
 
     private final @NotNull HttpProxy proxy;
-    private final @NotNull List<Connection> connections = new ArrayList<>();
+    private final @NotNull List<HttpConnection> connections = new ArrayList<>();
 
     private final @NotNull SocketChannel channel;
     private volatile @Nullable Socket destination;
@@ -113,12 +114,12 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
     }
 
     @Override
-    public @NotNull Connection @NotNull [] getConnections() {
-        return connections.toArray(new Connection[0]);
+    public @NotNull HttpConnection @NotNull [] getConnections() {
+        return connections.toArray(new HttpConnection[0]);
     }
 
-    protected @NotNull Connection createConnection(@NotNull InetSocketAddress address, boolean anonymous, boolean keepAlive) throws IOException {
-        @NotNull SimpleConnection instance = new SimpleConnection(this, address);
+    protected @NotNull HttpConnection createConnection(@NotNull InetSocketAddress address, boolean anonymous, boolean keepAlive) throws IOException {
+        @NotNull SimpleHttpConnection instance = new SimpleHttpConnection(this, address);
 
         instance.keepAlive = keepAlive;
         instance.anonymous = anonymous;
@@ -141,7 +142,7 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
     public void close() throws IOException {
         getProxy().getClients().remove(this);
 
-        for (@NotNull Connection connection : getConnections()) {
+        for (@NotNull HttpConnection connection : getConnections()) {
             try {
                 connection.close();
             } catch (@NotNull Throwable ignore) {
@@ -233,32 +234,19 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
 
                     try {
                         @NotNull URIAuthority authority = URIAuthority.parse(clone.getHeaders().first(HeaderKey.HOST).orElseThrow(NullPointerException::new).getValue());
-                        @Nullable Connection connection = getConnection(authority.getAddress()).orElse(null);
+                        @Nullable HttpConnection connection = getConnection(authority.getAddress()).orElse(null);
 
                         if (connection != null) {
-                            future.complete(connection.write(clone).get());
+                            future.complete(connection.write(clone).get(connection.getTimeout().toMillis(), TimeUnit.MILLISECONDS));
                         } else if (!canSession()) {
                             System.out.println("B");
                             future.complete(HttpStatus.BAD_REQUEST.createResponse(clone.getVersion()));
                         } else try { // Create new connection
                             boolean keepAlive = !clone.getHeaders().contains(HeaderKey.CONNECTION) || clone.getHeaders().last(HeaderKey.CONNECTION).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("keep-alive");
-                            @NotNull Connection instance = createConnection(authority.getAddress(), anonymous, keepAlive);
-                            // todo: Clone request witho the anonymous things
+                            connection = createConnection(authority.getAddress(), anonymous, keepAlive);
+                            // todo: Clone request with the anonymous things
 
-                            instance.write(clone).whenComplete((done, exception) -> {
-                                try {
-                                    if (exception != null) future.completeExceptionally(exception);
-                                    else future.complete(done);
-
-                                    if (!instance.isKeepAlive()) {
-                                        instance.close();
-                                    }
-                                } catch (@NotNull Throwable throwable) {
-                                    future.completeExceptionally(throwable);
-                                }
-                            });
-                        } catch (@NotNull ParseException parse) {
-                            future.complete(HttpResponse.create(new HttpStatus(400, "Bad Request - " + parse.getMessage()), request.getVersion(), request.getCharset(), request.getHeaders(), null));
+                            future.complete(connection.write(clone).get(connection.getTimeout().toMillis(), TimeUnit.MILLISECONDS));
                         } catch (@NotNull Throwable e) {
                             future.completeExceptionally(e);
                         }
