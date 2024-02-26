@@ -14,9 +14,9 @@ import codes.laivy.proxy.http.core.protocol.HttpFactory;
 import codes.laivy.proxy.http.core.protocol.HttpVersion;
 import codes.laivy.proxy.http.core.request.HttpRequest;
 import codes.laivy.proxy.http.core.response.HttpResponse;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.UnknownNullability;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@ApiStatus.Internal
 class HttpFactory1_1 implements HttpFactory {
 
     // Utilities
@@ -63,10 +64,8 @@ class HttpFactory1_1 implements HttpFactory {
             @NotNull String[] content = string.split("\r\n\r\n", 2);
             @NotNull String request = content[0];
 
-            @UnknownNullability URIAuthority authority = null;
+            @NotNull URIAuthority authority;
             @NotNull URI uri;
-
-            @NotNull Method method;
 
             // Get connection address
             @NotNull String temp1 = request.split(" ", 3)[1];
@@ -104,8 +103,6 @@ class HttpFactory1_1 implements HttpFactory {
             @NotNull String requestLine = temp2[0];
             @NotNull String[] headers = temp2[1].split("\r\n");
 
-            @NotNull String[] parts = requestLine.split(" ");
-
             // Retrieve headers
             @NotNull MutableHeaders headerList = codes.laivy.proxy.http.core.headers.Headers.createMutable();
 
@@ -123,10 +120,14 @@ class HttpFactory1_1 implements HttpFactory {
                 throw new ParseException("multiples '" + HeaderKey.HOST + "' headers", 0);
             }
 
+            // Method
+            @NotNull String methodName = requestLine.split(" ", 2)[0].toUpperCase();
+            @NotNull Method method;
+
             try {
-                method = Method.valueOf(parts[0].toUpperCase());
+                method = Method.valueOf(methodName);
             } catch (@NotNull IllegalArgumentException e) {
-                throw new ParseException("cannot parse '" + parts[0] + "' as a valid " + getVersion() + " request method", 0);
+                throw new ParseException("cannot parse '" + methodName + "' as a valid " + getVersion() + " request method", 0);
             }
             // Charset
             @NotNull Charset charset = StandardCharsets.UTF_8;
@@ -204,7 +205,8 @@ class HttpFactory1_1 implements HttpFactory {
             // Content
             @NotNull String[] content = string.split("\r\n\r\n", 2);
             // Request line
-            @NotNull String[] responseLine = content[0].split("\r\n", 2)[0].split(" ", 3);
+            @NotNull String[] temp = content[0].split("\r\n", 2);
+            @NotNull String[] responseLine = temp[0].split(" ", 3);
 
             try {
                 int code = Integer.parseInt(responseLine[1]);
@@ -217,10 +219,12 @@ class HttpFactory1_1 implements HttpFactory {
 
             // Retrieve headers
             @NotNull MutableHeaders headerList = codes.laivy.proxy.http.core.headers.Headers.createMutable();
-            // todo: if doesn't have headers, it will throw an exception
-            @NotNull String[] headerSection = content[0].split("\r\n", 2)[1].split("\r\n");
-            for (@NotNull String header : headerSection) {
-                headerList.add(getHeaders().parse(header.getBytes()));
+
+            if (content.length > 1) {
+                @NotNull String[] headerSection = content[0].split("\r\n", 2)[1].split("\r\n");
+                for (@NotNull String header : headerSection) {
+                    headerList.add(getHeaders().parse(header.getBytes()));
+                }
             }
             // Charset
             @NotNull Charset charset = StandardCharsets.UTF_8;

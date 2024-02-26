@@ -10,7 +10,7 @@ import org.junit.jupiter.api.*;
 import java.net.InetSocketAddress;
 
 // todo: exclusive http server for tests that verify headers and data
-@TestMethodOrder(MethodOrderer.MethodName.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public final class HttpProxyTest {
 
     private static final @NotNull InetSocketAddress PROXY_LOCAL_ADDRESS = new InetSocketAddress("0.0.0.0", 55525);
@@ -32,7 +32,7 @@ public final class HttpProxyTest {
     }
 
     @Nested
-    @Order(1)
+    @Order(0)
     public final class Insecure {
         @Test
         public void get() throws Throwable {
