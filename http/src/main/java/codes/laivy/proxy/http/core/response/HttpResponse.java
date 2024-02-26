@@ -29,18 +29,18 @@ public interface HttpResponse {
 
     // Static initializers
 
-    static @NotNull HttpResponse create(@NotNull HttpStatus status, @NotNull HttpVersion version, @NotNull Charset charset, @NotNull MutableHeaders headers, @Nullable Message message) {
-        return new HttpResponseImpl(status, version, charset, headers, message);
+    static @NotNull HttpResponse create(@NotNull HttpStatus status, @NotNull HttpVersion version, @NotNull MutableHeaders headers, @Nullable Message message) {
+        return new HttpResponseImpl(status, version, headers, message);
     }
 
-    static @NotNull HttpResponse create(@NotNull HttpStatus status, @NotNull HttpVersion version, @NotNull Charset charset, @Nullable Message message) {
+    static @NotNull HttpResponse create(@NotNull HttpStatus status, @NotNull HttpVersion version, @Nullable Message message) {
         @NotNull String server = HttpProxy.class.getPackage().getImplementationVersion() + System.getProperty("java.version") + System.getProperty("os.arch") + System.getProperty("os.version");
 
         @NotNull MutableHeaders headers = Headers.createMutable();
         headers.add(Header.create(HeaderKey.DATE, new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss").format(Date.from(Instant.now(Clock.system(ZoneId.of("UTC")))))));
         headers.add(Header.create(HeaderKey.SERVER, server));
 
-        return new HttpResponseImpl(status, version, charset, headers, message);
+        return new HttpResponseImpl(status, version, headers, message);
     }
 
     // Object
@@ -62,13 +62,6 @@ public interface HttpResponse {
      * @return the version of this response
      */
     @NotNull HttpVersion getVersion();
-
-    /**
-     * Retrieves the charset of this response.
-     * @return The charset of the response
-     */
-    // todo: this needs to be on Message class (maybe?)
-    @NotNull Charset getCharset();
 
     /**
      * Retrieves the headers of this response.

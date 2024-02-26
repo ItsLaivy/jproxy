@@ -144,10 +144,10 @@ class HttpFactory1_1 implements HttpFactory {
             // Message
             @Nullable Message message = null;
             if (content.length == 2) {
-                message = new StringMessage(content[1]);
+                message = new StringMessage(content[1], charset);
             }
 
-            return HttpRequest.create(getVersion(), method, authority, uri, charset, headerList, message);
+            return HttpRequest.create(getVersion(), method, authority, uri, headerList, message);
         }
 
         @Override
@@ -172,7 +172,7 @@ class HttpFactory1_1 implements HttpFactory {
             // Write message if exists
             if (request.getMessage() != null) {
                 @NotNull Message message = request.getMessage();
-                builder.append(new String(message.getContent(), request.getCharset()));
+                builder.append(new String(message.getContent(), message.getCharset()));
             }
 
             return builder.toString().getBytes(StandardCharsets.UTF_8);
@@ -237,11 +237,11 @@ class HttpFactory1_1 implements HttpFactory {
             // Message
             @Nullable Message message = null;
             if (content.length == 2) {
-                message = new StringMessage(content[1]);
+                message = new StringMessage(content[1], charset);
             }
 
             // todo: content length if not have
-            return HttpResponse.create(status, getVersion(), charset, headerList, message);
+            return HttpResponse.create(status, getVersion(), headerList, message);
         }
 
         @Override
@@ -263,7 +263,7 @@ class HttpFactory1_1 implements HttpFactory {
             // Write message if exists
             if (response.getMessage() != null) {
                 @NotNull Message message = response.getMessage();
-                builder.append(new String(message.getContent(), response.getCharset()));
+                builder.append(new String(message.getContent(), message.getCharset()));
             }
 
             return builder.toString().getBytes();

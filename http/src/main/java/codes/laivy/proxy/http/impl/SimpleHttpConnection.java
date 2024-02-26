@@ -132,7 +132,7 @@ public class SimpleHttpConnection implements HttpConnection {
 
                         response = optional.get().getFactory().getResponse().parse(client, bytes);
                     } catch (@NotNull ParseException e) {
-                        response = HttpResponse.create(new HttpStatus(400, "Bad Request - '" + e.getMessage() + "'"), HttpVersion.HTTP1_1(), StandardCharsets.UTF_8, null);
+                        response = HttpResponse.create(new HttpStatus(400, "Bad Request - '" + e.getMessage() + "'"), HttpVersion.HTTP1_1(), null);
                     }
                 } catch (ClosedChannelException ignore) {
                     continue;

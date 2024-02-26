@@ -13,14 +13,12 @@ class HttpResponseImpl implements HttpResponse {
 
     private final @NotNull HttpStatus status;
     private final @NotNull HttpVersion version;
-    private final @NotNull Charset charset;
     private final @NotNull MutableHeaders headers;
     private final @Nullable Message message;
 
-    public HttpResponseImpl(@NotNull HttpStatus status, @NotNull HttpVersion version, @NotNull Charset charset, @NotNull MutableHeaders headers, @Nullable Message message) {
+    public HttpResponseImpl(@NotNull HttpStatus status, @NotNull HttpVersion version, @NotNull MutableHeaders headers, @Nullable Message message) {
         this.status = status;
         this.version = version;
-        this.charset = charset;
         this.headers = headers;
         this.message = message;
     }
@@ -38,11 +36,6 @@ class HttpResponseImpl implements HttpResponse {
     @Override
     public @NotNull HttpVersion getVersion() {
         return version;
-    }
-
-    @Override
-    public @NotNull Charset getCharset() {
-        return charset;
     }
 
     @Override

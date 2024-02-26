@@ -125,9 +125,9 @@ class HttpSimpleProxyThread extends Thread {
                                     });
                                 }
                             } catch (@NotNull UnsupportedHttpVersionException exception) {
-                                client.write(HttpResponse.create(new HttpStatus(HttpStatus.HTTP_VERSION_NOT_SUPPORTED.getCode(), exception.getMessage()), HttpVersion.HTTP1_1(), StandardCharsets.UTF_8, null));
+                                client.write(HttpResponse.create(new HttpStatus(HttpStatus.HTTP_VERSION_NOT_SUPPORTED.getCode(), exception.getMessage()), HttpVersion.HTTP1_1(), null));
                             } catch (@NotNull ParseException exception) {
-                                client.write(HttpResponse.create(new HttpStatus(400, "Bad Request - '" + exception.getMessage() + "'"), HttpVersion.HTTP1_1(), StandardCharsets.UTF_8, null));
+                                client.write(HttpResponse.create(new HttpStatus(400, "Bad Request - '" + exception.getMessage() + "'"), HttpVersion.HTTP1_1(), null));
                             } catch (@NotNull Throwable exception) {
                                 // todo: remove client when close
                                 client.close();

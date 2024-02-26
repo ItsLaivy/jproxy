@@ -21,8 +21,8 @@ public interface HttpRequest {
 
     // Static initializers
 
-    static @NotNull HttpRequest create(@NotNull HttpVersion version, @NotNull Method method, @Nullable URIAuthority authority, @NotNull URI uri, @NotNull Charset charset, @NotNull MutableHeaders headers, @Nullable Message message) {
-        return new HttpRequestImpl(version, method, authority, uri, charset, headers, message);
+    static @NotNull HttpRequest create(@NotNull HttpVersion version, @NotNull Method method, @Nullable URIAuthority authority, @NotNull URI uri, @NotNull MutableHeaders headers, @Nullable Message message) {
+        return new HttpRequestImpl(version, method, authority, uri, headers, message);
     }
 
     // Object
@@ -52,12 +52,6 @@ public interface HttpRequest {
      * @return The URI path of the request
      */
     @NotNull URI getUri();
-
-    /**
-     * Retrieves the charset of this request.
-     * @return The charset of the request
-     */
-    @NotNull Charset getCharset();
 
     /**
      * Retrieves the headers of this request.

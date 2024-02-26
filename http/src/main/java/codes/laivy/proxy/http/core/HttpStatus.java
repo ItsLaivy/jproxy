@@ -137,10 +137,10 @@ public class HttpStatus implements Comparable<Integer> {
     }
 
     public final @NotNull HttpResponse createResponse(@NotNull HttpVersion version) {
-        return createResponse(version, StandardCharsets.UTF_8, null);
+        return createResponse(version, null);
     }
-    public final @NotNull HttpResponse createResponse(@NotNull HttpVersion version, @NotNull Charset charset, @Nullable Message message) {
-        return HttpResponse.create(this, version, charset, Headers.createMutable(), message);
+    public final @NotNull HttpResponse createResponse(@NotNull HttpVersion version, @Nullable Message message) {
+        return HttpResponse.create(this, version, Headers.createMutable(), message);
     }
 
     // Implementations

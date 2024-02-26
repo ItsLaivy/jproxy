@@ -212,7 +212,7 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
     public @NotNull CompletableFuture<HttpResponse> request(@NotNull HttpRequest request) throws IOException, ParseException {
         @NotNull CompletableFuture<HttpResponse> future = new CompletableFuture<>();
 
-        @NotNull HttpRequest clone = HttpRequest.create(request.getVersion(), request.getMethod(), null, request.getUri(), request.getCharset(), request.getHeaders(), request.getMessage());
+        @NotNull HttpRequest clone = HttpRequest.create(request.getVersion(), request.getMethod(), null, request.getUri(), request.getHeaders(), request.getMessage());
         if (request.getAuthority() != null && request.getAuthority().getUserInfo() != null) {
             clone.getHeaders().add(Header.create(HeaderKey.AUTHORIZATION, "Basic " + request.getAuthority().getUserInfo()));
         }
