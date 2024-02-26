@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.text.ParseException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -29,6 +30,8 @@ public interface HttpProxyClient extends ProxyClient {
 
     boolean isAuthenticated();
     void setAuthenticated(boolean authenticated);
+
+    @NotNull Duration getTimeout();
 
     // Connection
 

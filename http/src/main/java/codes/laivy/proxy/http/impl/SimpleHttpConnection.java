@@ -18,6 +18,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -25,7 +26,7 @@ import java.util.concurrent.Executor;
 
 public class SimpleHttpConnection implements HttpConnection {
 
-    // Concurrency
+    // Concurrency and timeout
 
     protected final @NotNull Queue<CompletableFuture<HttpResponse>> queue = new ConcurrentLinkedDeque<>();
 
@@ -68,6 +69,11 @@ public class SimpleHttpConnection implements HttpConnection {
     @Override
     public @Nullable Socket getSocket() {
         return socket;
+    }
+
+    @Override
+    public @NotNull Duration getTimeout() {
+        return Duration.ofMinutes(5);
     }
 
     @Override
@@ -184,13 +190,10 @@ public class SimpleHttpConnection implements HttpConnection {
 
     // Modules
 
-    protected @NotNull Executor getExecutor(@NotNull HttpRequest request) {
-        return getClient().getExecutor(request);
-    }
-
     protected void send(@NotNull HttpRequest request) throws IOException {
         @Nullable Socket socket = getSocket();
         if (socket == null || !isConnected()) {
+            // Establish connection again if closed before
             connect();
             socket = getSocket();
         }
@@ -198,6 +201,10 @@ public class SimpleHttpConnection implements HttpConnection {
         // Send request
         @NotNull ByteBuffer buffer = ByteBuffer.wrap(request.getBytes());
         socket.getChannel().write(buffer);
+    }
+
+    protected @NotNull Executor getExecutor(@NotNull HttpRequest request) {
+        return getClient().getExecutor(request);
     }
 
     @Override

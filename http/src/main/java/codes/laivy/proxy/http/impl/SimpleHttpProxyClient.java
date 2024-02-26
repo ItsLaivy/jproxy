@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -30,6 +31,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+// todo: client timeout
 public class SimpleHttpProxyClient implements HttpProxyClient {
 
     // Initializers
@@ -108,6 +110,12 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
     public void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
     }
+
+    @Override
+    public @NotNull Duration getTimeout() {
+        return Duration.ofMinutes(5);
+    }
+
     @Override
     public boolean canSession() {
         return session;
@@ -208,10 +216,14 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
             clone.getHeaders().add(Header.create(HeaderKey.AUTHORIZATION, "Basic " + request.getAuthority().getUserInfo()));
         }
 
-        System.out.println("Clone: '" + new String(clone.getVersion().getFactory().getRequest().wrap(clone)).replaceAll("\r", "").replaceAll("\n", " ") + "'");
-
+        // Anonymous headers
         boolean anonymous = clone.getHeaders().contains(HeaderKey.ANONYMOUS_HEADER) && clone.getHeaders().last(HeaderKey.ANONYMOUS_HEADER).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("true");
         clone.getHeaders().remove(HeaderKey.ANONYMOUS_HEADER);
+
+        // todo: anonymous headers
+        //
+
+        System.out.println("Clone: '" + new String(clone.getVersion().getFactory().getRequest().wrap(clone)).replaceAll("\r", "").replaceAll("\n", " ") + "'");
 
         CompletableFuture.runAsync(() -> {
             try {
@@ -237,14 +249,13 @@ public class SimpleHttpProxyClient implements HttpProxyClient {
                         @Nullable HttpConnection connection = getConnection(authority.getAddress()).orElse(null);
 
                         if (connection != null) {
+                            // todo: add request timeout
                             future.complete(connection.write(clone).get(connection.getTimeout().toMillis(), TimeUnit.MILLISECONDS));
                         } else if (!canSession()) {
-                            System.out.println("B");
                             future.complete(HttpStatus.BAD_REQUEST.createResponse(clone.getVersion()));
                         } else try { // Create new connection
                             boolean keepAlive = !clone.getHeaders().contains(HeaderKey.CONNECTION) || clone.getHeaders().last(HeaderKey.CONNECTION).orElseThrow(NullPointerException::new).getValue().equalsIgnoreCase("keep-alive");
                             connection = createConnection(authority.getAddress(), anonymous, keepAlive);
-                            // todo: Clone request with the anonymous things
 
                             future.complete(connection.write(clone).get(connection.getTimeout().toMillis(), TimeUnit.MILLISECONDS));
                         } catch (@NotNull Throwable e) {

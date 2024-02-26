@@ -6,13 +6,14 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
-public interface HttpConnection extends AutoCloseable {
+public interface HttpConnection extends Closeable {
 
     @Contract(pure = true)
     @NotNull HttpProxyClient getClient();
@@ -22,9 +23,7 @@ public interface HttpConnection extends AutoCloseable {
 
     @Nullable Socket getSocket();
 
-    default @NotNull Duration getTimeout() {
-        return Duration.ofSeconds(16);
-    }
+    @NotNull Duration getTimeout();
 
     void connect() throws IOException;
 

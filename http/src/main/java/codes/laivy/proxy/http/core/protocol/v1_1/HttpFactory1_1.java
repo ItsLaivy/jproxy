@@ -220,23 +220,14 @@ class HttpFactory1_1 implements HttpFactory {
             // todo: if doesn't have headers, it will throw an exception
             @NotNull String[] headerSection = content[0].split("\r\n", 2)[1].split("\r\n");
             for (@NotNull String header : headerSection) {
-                try {
-                    headerList.add(getHeaders().parse(header.getBytes()));
-                } catch (ParseException e) {
-                    throw new RuntimeException(e);
-                }
+                headerList.add(getHeaders().parse(header.getBytes()));
             }
             // Charset
             @NotNull Charset charset = StandardCharsets.UTF_8;
 
             @NotNull Optional<Header> optional = headerList.first(HeaderKey.CONTENT_TYPE);
             if (optional.isPresent()) {
-                @NotNull ContentType type = null;
-                try {
-                    type = ContentType.parse(optional.get().getValue());
-                } catch (ParseException e) {
-                    throw new RuntimeException(e);
-                }
+                @NotNull ContentType type = ContentType.parse(optional.get().getValue());
                 charset = type.getCharset() != null ? type.getCharset() : StandardCharsets.UTF_8;
             }
             // Message
