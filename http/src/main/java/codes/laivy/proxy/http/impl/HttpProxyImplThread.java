@@ -126,6 +126,7 @@ class HttpProxyImplThread extends Thread {
                             } catch (@NotNull ParseException exception) {
                                 client.write(HttpResponse.create(new HttpStatus(400, "Bad Request - '" + exception.getMessage() + "'"), HttpVersion.HTTP1_1(), StandardCharsets.UTF_8, null));
                             } catch (@NotNull Throwable exception) {
+                                // todo: remove client when close
                                 client.close();
                             }
                         } catch (@NotNull Throwable throwable) {

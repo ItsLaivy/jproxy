@@ -1,5 +1,5 @@
 import codes.laivy.proxy.http.core.ContentType;
-import codes.laivy.proxy.http.core.NameValuePair;
+import codes.laivy.proxy.utils.NameValuePair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;

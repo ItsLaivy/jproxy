@@ -1,5 +1,6 @@
 package codes.laivy.proxy.http.core;
 
+import codes.laivy.proxy.utils.NameValuePair;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;

@@ -32,8 +32,8 @@ public interface HttpProxyClient extends ProxyClient {
 
     // Connection
 
-    @NotNull Connection @NotNull [] getConnections();
-    default @NotNull Optional<Connection> getConnection(@NotNull InetSocketAddress address) {
+    @NotNull HttpConnection @NotNull [] getConnections();
+    default @NotNull Optional<HttpConnection> getConnection(@NotNull InetSocketAddress address) {
         return Arrays.stream(getConnections()).filter(connection -> connection.getAddress().equals(address)).findFirst();
     }
 
@@ -54,14 +54,14 @@ public interface HttpProxyClient extends ProxyClient {
      * Sends an HTTP response of a previous operation to the client
      *
      * @throws IOException If an input or output error occurs.
-z     */
+    z     */
     void write(@NotNull HttpResponse response) throws IOException;
 
     /**
      * Creates an HTTP request to the destination proxy on behalf of the client.
-     * @param request The future of the HTTP request to be requested to the destination by the proxy.
-     * @return An HTTP response received from the destination by the proxy.
      *
+     * @param request The future of the HTTP request to be requested to the destination by the proxy.
+     * @return An HTTP response received from the destination by the proxy.*
      * @throws IOException If an input or output error occurs.
      * @throws ParseException If an error occurs trying to deserialize/serialize the response/request
      */

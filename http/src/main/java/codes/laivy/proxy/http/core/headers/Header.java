@@ -1,8 +1,9 @@
 package codes.laivy.proxy.http.core.headers;
 
-import codes.laivy.proxy.http.core.NameValuePair;
+import codes.laivy.proxy.utils.NameValuePair;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -17,6 +18,12 @@ public interface Header extends NameValuePair {
 
     @Override
     @NotNull String getValue();
+
+    @Override
+    boolean equals(@Nullable Object o);
+
+    @Override
+    int hashCode();
 
     static @NotNull Header create(final @NotNull HeaderKey key, final @NotNull String value) {
         return create(key, value, true);

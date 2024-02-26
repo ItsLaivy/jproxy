@@ -10,7 +10,6 @@ import org.junit.jupiter.api.*;
 import java.net.InetSocketAddress;
 
 // todo: exclusive http server for tests that verify headers and data
-// todo: tests with JSoup#newSession
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public final class HttpProxyTest {
 
@@ -228,6 +227,7 @@ public final class HttpProxyTest {
                 // Test with JSoup session
                 @NotNull Connection connection = Jsoup.newSession()
                         .proxy(proxy)
+
                         .ignoreContentType(true)
                         .ignoreHttpErrors(true);
                 @NotNull Connection.Response response;

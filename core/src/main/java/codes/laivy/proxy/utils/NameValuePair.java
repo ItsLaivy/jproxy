@@ -1,4 +1,4 @@
-package codes.laivy.proxy.http.core;
+package codes.laivy.proxy.utils;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

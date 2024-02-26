@@ -9,10 +9,10 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.text.ParseException;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
-public interface Connection extends AutoCloseable {
+public interface HttpConnection extends AutoCloseable {
 
     @Contract(pure = true)
     @NotNull HttpProxyClient getClient();
@@ -21,6 +21,10 @@ public interface Connection extends AutoCloseable {
     @NotNull InetSocketAddress getAddress();
 
     @Nullable Socket getSocket();
+
+    default @NotNull Duration getTimeout() {
+        return Duration.ofSeconds(16);
+    }
 
     void connect() throws IOException;
 
@@ -32,6 +36,11 @@ public interface Connection extends AutoCloseable {
 
     boolean isAnonymous();
 
-    @NotNull CompletableFuture<HttpResponse> write(@NotNull HttpRequest request) throws IOException, ParseException;
+    /**
+     * Sends an HTTP response of a previous operation to the client
+     *
+     * @throws IOException If an input or output error occurs.
+     */
+    @NotNull CompletableFuture<HttpResponse> write(@NotNull HttpRequest request) throws IOException;
 
 }
