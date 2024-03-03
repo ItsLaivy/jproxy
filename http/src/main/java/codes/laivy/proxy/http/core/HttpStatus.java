@@ -134,9 +134,11 @@ public class HttpStatus implements Comparable<Integer> {
         return Category.getCategory(this);
     }
 
+    @Deprecated
     public final @NotNull HttpResponse createResponse(@NotNull HttpVersion version) {
         return createResponse(version, null);
     }
+    @Deprecated
     public final @NotNull HttpResponse createResponse(@NotNull HttpVersion version, @Nullable Message message) {
         return HttpResponse.create(this, version, Headers.createMutable(), message);
     }
